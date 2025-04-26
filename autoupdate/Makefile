@@ -13,7 +13,7 @@ define Package/autoupdate
   SECTION:=utils
   CATEGORY:=Utilities
   TITLE:=OpenWrt Auto Update Utility
-  DEPENDS:=+curl +wget +luci-app-autoupdate
+  DEPENDS:=+curl +wget
   PKGARCH:=all
 endef
 
