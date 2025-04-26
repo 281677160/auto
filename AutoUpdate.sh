@@ -13,11 +13,11 @@ else
   exit 1
 fi
 
-if ! curl -fsSL ${Github_API2} -o ${API_PATH}; then
-  curl -fsSL ${Github_API1} -o ${API_PATH}
+if ! curl -fsSL ${Github_API2} -o /tmp/openwrt_api; then
+  curl -fsSL ${Github_API1} -o /tmp/openwrt_api
 fi
 
-if [[ -z "$(grep -E "assets" ${API_PATH})" ]]; then
+if [[ -z "$(grep -E "assets" /tmp/openwrt_api)" ]]; then
   echo "获取API数据失败,请检测网络,或您的github仓库为私库?" > /tmp/cloud_version
   exit 1
 fi
@@ -40,7 +40,7 @@ fi
 Kernel=$(uname -rs | cut -d ' ' -f2)
 CURRENT_Device=$(awk -F': ' '/model name/ {print $2; exit}' /proc/cpuinfo)
 LOCAL_Version=$(echo "${CURRENT_Version}" |sed "s/.*${DEFAULT_Device}//g" |grep -Eo [0-9]+)
-CLOUD_Firmware=$(grep -Eo "${CLOUD_CHAZHAO}-[0-9]+-${BOOT_Type}-[a-zA-Z0-9]+${Firmware_SFX}" ${API_PATH} | awk 'END {print}')
+CLOUD_Firmware=$(grep -Eo "${CLOUD_CHAZHAO}-[0-9]+-${BOOT_Type}-[a-zA-Z0-9]+${Firmware_SFX}" /tmp/openwrt_api | awk 'END {print}')
 CLOUD_Version=$(echo "${CLOUD_Firmware}" |sed "s/.*${DEFAULT_Device}//g" |sed "s/${BOOT_Type}.*//g" |grep -Eo [0-9]+)
 LUCI_Firmware="${SOURCE}-${DEFAULT_Device}-${CLOUD_Version}"
 if [[ -z "${CLOUD_Firmware}" ]] && [[ -z "${CLOUD_Version}" ]] && [[ -z "${LUCI_Firmware}" ]]; then
