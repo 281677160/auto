@@ -144,11 +144,8 @@ case "$1" in
     Remote_information
     Remote_upgrade
   ;;
-  "-f")
+  *)
     Remote_detection
     Remote_information
-  ;;
-  *)
-    exit 0
   ;;
 esac
