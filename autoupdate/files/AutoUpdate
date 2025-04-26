@@ -1,0 +1,148 @@
+#!/bin/sh
+# AutoUpdate for Openwrt
+# Version: V8.0
+# https://github.com/Hyy2001X/AutoBuild-Actions
+
+Input_Option=$1
+LOG_FILE="/tmp/AutoUpdate.log"
+API_PATH="/tmp/Github_Tags"
+Download_Path="/tmp/Downloads"
+
+# 初始化日志
+echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 运行在线更新程序]" > $LOG_FILE
+
+# 网络检测函数
+function Network_detection() {
+    echo "正在检测网络连接..." | tee -a $LOG_FILE
+    curl --connect-timeout 9 -o /tmp/baidu.html -s -w %{time_namelookup}: http://www.baidu.com > /dev/null 2>&1
+    
+    if [[ -f /tmp/baidu.html ]] && [[ $(grep -c "百度一下" /tmp/baidu.html) -ge '1' ]]; then
+        rm -rf /tmp/baidu.html
+        echo "网络连接正常" | tee -a $LOG_FILE
+        return 0
+    else
+        echo "网络连接失败，请检查网络配置" | tee -a $LOG_FILE
+        echo "wuwanglou" > /tmp/cloud_version
+        return 1
+    fi
+}
+
+# 固件信息获取函数
+function information_acquisition() {
+    echo "正在获取固件信息..." | tee -a $LOG_FILE
+    
+    # 加载配置文件
+    if [ ! -f "/etc/openwrt_update" ]; then
+        echo "缺少配置文件 /etc/openwrt_update" | tee -a $LOG_FILE
+        exit 1
+    fi
+    source /etc/openwrt_update
+
+    # 创建下载目录
+    [ ! -d "${Download_Path}" ] && mkdir -p ${Download_Path} || rm -rf "${Download_Path}"/*
+
+    # 获取API数据
+    wget -q --no-check-certificate ${Github_API1} -O ${API_PATH}
+    if [[ $(grep -c "size" ${API_PATH}) -eq '0' ]]; then
+        curl -fsSL ${Github_API2} -o ${API_PATH}
+    fi
+
+    if [[ ! -f "${API_PATH}" ]] || [[ $(grep -c "size" ${API_PATH}) -lt '1' ]]; then
+        echo "获取API数据失败" | tee -a $LOG_FILE
+        exit 1
+    fi
+
+    # 获取设备信息
+    case "${TARGET_BOARD}" in
+        x86)
+            [ -d '/sys/firmware/efi' ] && BOOT_Type=uefi || BOOT_Type=legacy
+            CURRENT_Device=$(cat /proc/cpuinfo | grep 'model name' | awk 'END {print}' | cut -f2 -d: | sed 's/^[ ]*//g' | sed 's/\ CPU//g')
+            [[ -z "${CURRENT_Device}" ]] && CURRENT_Device="${DEFAULT_Device}"
+            ;;
+        *)
+            CURRENT_Device=$(jsonfilter -e '@.model.id' < /etc/board.json | tr ',' '_')
+            BOOT_Type=sysupgrade
+    esac
+
+    # 版本信息处理
+    LOCAL_Version=$(echo "${CURRENT_Version}" | sed "s/.*${DEFAULT_Device}//g" | grep -Eo [0-9]+)
+    CLOUD_Firmware=$(grep -Eo "${CLOUD_CHAZHAO}-[0-9]+-${BOOT_Type}-[a-zA-Z0-9]+${Firmware_SFX}" ${API_PATH} | awk 'END {print}')
+    CLOUD_Version=$(echo "${CLOUD_Firmware}" | sed "s/.*${DEFAULT_Device}//g" | sed "s/${BOOT_Type}.*//g" | grep -Eo [0-9]+)
+    LUCI_Firmware="${SOURCE}-${DEFAULT_Device}-${CLOUD_Version}"
+
+    # 生成版本信息文件
+    cat > /tmp/Version_Tags <<-EOF
+LOCAL_Version=${LOCAL_Version}
+CLOUD_Version=${CLOUD_Version}
+LUCI_Firmware=${LUCI_Firmware}
+MODEL_type=${BOOT_Type}${Firmware_SFX}
+KERNEL_type=$(uname -rs)
+CURRENT_Device=${CURRENT_Device}
+EOF
+
+    echo "固件信息获取完成" | tee -a $LOG_FILE
+}
+
+# 固件升级函数
+function firmware_upgrade() {
+    echo "开始固件升级流程..." | tee -a $LOG_FILE
+    
+    # 检查tmp空间
+    TMP_Available=$(df -m | grep "/tmp" | awk '{print $4}' | awk 'NR==1' | awk -F. '{print $1}')
+    let X=$(grep -n "${CLOUD_Firmware}" ${API_PATH} | tail -1 | cut -d : -f 1)-4
+    let CLOUD_Firmware_Size=$(sed -n "${X}p" ${API_PATH} | grep -Eo "[0-9]+" | awk '{print ($1)/1048576}' | awk -F. '{print $1}')+1
+    
+    if [[ "${TMP_Available}" -lt "${CLOUD_Firmware_Size}" ]]; then
+        echo "tmp空间不足，无法下载固件" | tee -a $LOG_FILE
+        exit 1
+    fi
+
+    # 版本比较
+    if [[ "${LOCAL_Version}" -lt "${CLOUD_Version}" ]]; then
+        echo "检测到新版本固件，开始下载..." | tee -a $LOG_FILE
+    elif [[ "${LOCAL_Version}" -eq "${CLOUD_Version}" ]]; then
+        echo "当前已是最新版本" | tee -a $LOG_FILE
+        exit 0
+    else
+        echo "云端版本低于本地版本" | tee -a $LOG_FILE
+        exit 0
+    fi
+
+    # 下载固件
+    cd "${Download_Path}"
+    if [[ "$(curl -I -s --connect-timeout 8 google.com -w %{http_code} | tail -n1)" == "301" ]]; then
+        DOWNLOAD_URL=${Release_download1}
+    else
+        DOWNLOAD_URL=${Release_download2}
+    fi
+
+    echo "正在从 ${DOWNLOAD_URL} 下载固件..." | tee -a $LOG_FILE
+    wget -q --no-check-certificate ${DOWNLOAD_URL}/${CLOUD_Firmware} -O ${CLOUD_Firmware}
+    if [[ $? -ne 0 ]]; then
+        curl -fsSL ${DOWNLOAD_URL}/${CLOUD_Firmware} -o ${CLOUD_Firmware}
+        if [[ $? -ne 0 ]]; then
+            echo "固件下载失败" | tee -a $LOG_FILE
+            exit 1
+        fi
+    fi
+
+    echo "固件下载完成，开始升级..." | tee -a $LOG_FILE
+    sysupgrade -n ${CLOUD_Firmware}
+}
+
+# 主执行流程
+case "$Input_Option" in
+    -u)
+        if Network_detection; then
+            information_acquisition
+            firmware_upgrade
+        fi
+        ;;
+    *)
+        if Network_detection; then
+            information_acquisition
+        fi
+        ;;
+esac
+
+exit 0
