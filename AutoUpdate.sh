@@ -37,6 +37,8 @@ else
   BOOT_Type=sysupgrade
 fi
 
+Kernel=$(uname -rs | cut -d ' ' -f2)
+CURRENT_Device=$(awk -F': ' '/model name/ {print $2; exit}' /proc/cpuinfo)
 LOCAL_Version=$(echo "${CURRENT_Version}" |sed "s/.*${DEFAULT_Device}//g" |grep -Eo [0-9]+)
 CLOUD_Firmware=$(grep -Eo "${CLOUD_CHAZHAO}-[0-9]+-${BOOT_Type}-[a-zA-Z0-9]+${Firmware_SFX}" ${API_PATH} | awk 'END {print}')
 CLOUD_Version=$(echo "${CLOUD_Firmware}" |sed "s/.*${DEFAULT_Device}//g" |sed "s/${BOOT_Type}.*//g" |grep -Eo [0-9]+)
