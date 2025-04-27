@@ -44,28 +44,28 @@ msgstr "Github 地址"
 msgid "Click the button below to upgrade to the latest version. Please wait patiently until the router reboots."
 msgstr "若有更新可点击上方 手动更新 后请耐心等待至路由器重启"
 
-msgid "Current firmware version"
-msgstr "本地版本"
+msgid "Current firmware version:"
+msgstr "本地版本："
 
-msgid "Latest firmware version"
-msgstr "云端版本"
+msgid "Latest firmware version:"
+msgstr "云端版本："
 
-msgid "Device model"
-msgstr "主机型号"
+msgid "Device model:"
+msgstr "主机型号："
 
-msgid "Kernel version"
-msgstr "内核版本"
+msgid "Kernel version:"
+msgstr "内核版本："
 
-msgid "Firmware type"
-msgstr "固件类型"
+msgid "Firmware type:"
+msgstr "固件类型："
 
-msgid "Are you sure you want to upgrade the firmware"
-msgstr "您确定要升级固件吗"
+msgid "Are you sure you want to upgrade the firmware?"
+msgstr "您确定要升级固件吗？"
 
-msgid "Upgrade started successfully! Router will reboot soon"
+msgid "Upgrade started successfully! Router will reboot soon."
 msgstr "开始升级固件,请耐心等待路由器重启"
 
-msgid "Check update script failed"
+msgid "Check update script failed!"
 msgstr "检查更新脚本失败"
 
 
