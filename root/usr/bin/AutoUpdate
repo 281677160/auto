@@ -4,8 +4,6 @@
 # AutoUpdate for Openwrt
 # /usr/bin/AutoUpdate
 
-Version=V8.0
-
 function Remote_detection() {
 if [[ -f "/etc/openwrt_update" ]]; then
   source /etc/openwrt_update
