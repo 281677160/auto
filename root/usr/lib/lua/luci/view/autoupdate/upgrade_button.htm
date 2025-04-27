@@ -1,6 +1,28 @@
 <%+cbi/valueheader%>
 <div class="cbi-value-field">
     <input class="cbi-button cbi-button-apply" type="button" value="<%:Start Upgrade%>" 
-        onclick="this.form.cbi_action='write'; this.form.submit()" />
+        onclick="confirmUpgrade()" />
 </div>
+<script type="text/javascript">
+function confirmUpgrade() {
+    if (confirm('<%:Are you sure you want to upgrade the firmware?%>')) {
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '<%=url("admin/system/autoupdate/do_upgrade")%>', true);
+        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+                var response = JSON.parse(xhr.responseText);
+                if (response.success) {
+                    alert('<%:Upgrade started successfully! Router will reboot soon.%>');
+                } else {
+                    alert('<%:Upgrade failed!%> ' + response.message);
+                }
+            }
+        };
+        
+        xhr.send();
+    }
+}
+</script>
 <%+cbi/valuefooter%>
