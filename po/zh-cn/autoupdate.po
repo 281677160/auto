@@ -42,7 +42,7 @@ msgid "GitHub URL"
 msgstr "Github 地址"
 
 msgid "Click the button below to upgrade to the latest version. Please wait patiently until the router reboots."
-msgstr "若有更新可点击上方 手动更新 后请耐心等待至路由器重启"
+msgstr "若有更新可点击上方 点击更新 后请耐心等待至路由器重启"
 
 msgid "Current firmware version"
 msgstr "本地版本"
