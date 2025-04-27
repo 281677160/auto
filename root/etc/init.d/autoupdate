@@ -19,13 +19,11 @@ run_autoupdate()
 		fi
 		cus_url="$(uci get autoupdate.@login[0].github)"
 		if [[ -n "$(echo "${cus_url}" |grep -E "https://github.com/.*/")" ]]; then
-                	custom_github_url="$(echo "${cus_url}" |cut -d '/' -f 4-5)"
-			current_github_url="$(awk -F'=' '/GITHUB_LINK=/ {print $2}' /etc/openwrt_update)"
+                	custom_github_url="$(awk -F'=' '/GITHUB_LINK=/ {print $2}' /etc/openwrt_update)"
 			LAN_IP=$(uci get network.lan.ipaddr)
 		fi
-		if [[ `echo "${custom_github_url}" |grep -c '/'` -eq '1' ]] && [[ ! "${custom_github_url}" == "${current_github_url}" ]]; then
-			sed -i "s?${current_github_url}?${custom_github_url}?g" /etc/openwrt_update
-			uci set autoupdate.@login[0].github=${cus_url}
+		if [[ -n "${custom_github_url}" ]] && [[ ! "${cus_url}" == "${custom_github_url}" ]]; then
+			sed -i "s?${custom_github_url}?${cus_url}?g" /etc/openwrt_update
  			uci commit autoupdate
 			curl http://$LAN_IP/cgi-bin/luci/admin/system/autoupdate
 		fi
