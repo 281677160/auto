@@ -72,6 +72,13 @@ if [[ -n "${LOCAL_Version}" ]] && [[ -n "${CLOUD_Version}" ]] && [[ -n "${LUCI_F
 		echo "${LUCI_Firmware} [${Checked_Type}]" > /tmp/cloud_version	
 	fi
 fi
+if [[ "${LOCAL_Version}" -eq "${CLOUD_Version}" ]]; then
+  echo "no_update" > /tmp/version_compare
+else
+  echo "update_available" > /tmp/version_compare
+  echo "${LOCAL_Version}" > /tmp/local_version
+  echo "${CLOUD_Version}" > /tmp/cloud_version
+fi
 }
 
 function Remote_upgrade() {
