@@ -42,7 +42,7 @@ Kernel=$(uname -rs | cut -d ' ' -f2)
 CURRENT_Device=$(awk -F': ' '/model name/ {print $2; exit}' /proc/cpuinfo)
 LOCAL_Version=$(echo "${CURRENT_Version}" | awk -F'-' '{print $NF}')
 CLOUD_Firmware=$(grep -Eo "${LUCI_EDITION}-${SOURCE}-${DEFAULT_Device}-[0-9]+-${BOOT_Type}-[a-zA-Z0-9]+${Firmware_SFX}" /tmp/api_version | awk 'END {print}')
-CLOUD_Version=$(echo "${CLOUD_Firmware}" | awk -F'-' '{print $(NF-1)}')
+CLOUD_Version=$(echo "${CLOUD_Firmware}" |sed "s/.*${DEFAULT_Device}//g" |sed "s/${BOOT_Type}.*//g" |grep -Eo [0-9]+)
 LUCI_Firmware="${SOURCE}-${DEFAULT_Device}-${CLOUD_Version}"
 if [[ -z "${CLOUD_Firmware}" ]] && [[ -z "${CLOUD_Version}" ]] && [[ -z "${LUCI_Firmware}" ]]; then
   echo "获取云端信息失败,x86注意本地跟云端固件显示的引导模式是否一致,或者就是云端压根就没您同类型的固件存在,或者作者更了固件获取条件导致您本地跟云端信息不一直!" > /tmp/cloud_version
@@ -58,21 +58,19 @@ KERNEL_type=${Kernel} - ${LUCI_EDITION}
 CURRENT_Device=${CURRENT_Device}
 EOF
 
-LOCAL_Version=$(grep LOCAL_Version= /tmp/Version_Tags | cut -c15-100)
-CLOUD_Version=$(grep CLOUD_Version= /tmp/Version_Tags | cut -c15-100)
-LUCI_Firmware=$(grep LUCI_Firmware= /tmp/Version_Tags | cut -c15-100)
+LOCAL_Version=$(awk -F'=' '/LOCAL_Version=/ {print $2}' /tmp/Version_Tags)
+CLOUD_Version=$(awk -F'=' '/CLOUD_Version=/ {print $2}' /tmp/Version_Tags)
+LUCI_Firmware=$(awk -F'=' '/LUCI_Firmware=/ {print $2}' /tmp/Version_Tags)
 if [[ -n "${LOCAL_Version}" ]] && [[ -n "${CLOUD_Version}" ]] && [[ -n "${LUCI_Firmware}" ]]; then
 	if [[ "${LOCAL_Version}" -eq "${CLOUD_Version}" ]]; then
-		Checked_Type="已是最新"
-		echo "${LUCI_Firmware} [${Checked_Type}]" > /tmp/cloud_version
+		echo "${LUCI_Firmware} [已是最新]" > /tmp/cloud_version
 	elif [[ "${LOCAL_Version}" -lt "${CLOUD_Version}" ]]; then
-		Checked_Type="有可更新固件"
-		echo "${LUCI_Firmware} [${Checked_Type}]" > /tmp/cloud_version
+		echo "${LUCI_Firmware} [有可更新固件]" > /tmp/cloud_version
 	elif [[ "${LOCAL_Version}" -gt "${CLOUD_Version}" ]]; then
-		Checked_Type="云端最高版本固件,低于您现在所使用版本,请到云端查看原因"
-		echo "${LUCI_Firmware} [${Checked_Type}]" > /tmp/cloud_version	
+		echo "${LUCI_Firmware} [云端最高版本固件,低于您现在所使用版本,请到云端查看原因]" > /tmp/cloud_version	
 	fi
 fi
+
 if [[ "${LOCAL_Version}" -eq "${CLOUD_Version}" ]]; then
   echo "no_update" > /tmp/compare_version
 else
