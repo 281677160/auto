@@ -1,7 +1,0 @@
-#!/bin/sh
-GITHUB_LINK="https://github.com/Hyy2001X/AutoBuild-Actions"
-API_PATH="/tmp/Github_Tags"
-Download_Path="/tmp/Downloads"
-DEFAULT_Device="x86"
-TARGET_BOARD="x86"
-CURRENT_Version="$(cat /etc/openwrt_version)"
