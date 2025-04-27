@@ -12,8 +12,8 @@ else
   exit 1
 fi
 
-if ! curl -fsSL ${Github_API2} -o /tmp/openwrt_api; then
-  curl -fsSL ${Github_API1} -o /tmp/openwrt_api
+if ! curl -fsSL ${Release_download1}/zzz_api -o /tmp/openwrt_api; then
+  curl -fsSL ${Release_download2}/zzz_api -o /tmp/openwrt_api
 fi
 
 if [[ -z "$(grep -E "assets" /tmp/openwrt_api)" ]]; then
@@ -99,16 +99,16 @@ fi
 
 cd "${Download_Path}"
 if [[  "$(curl -I -s --connect-timeout 8 google.com -w %{http_code} | tail -n1)" == "301" ]]; then
-  DOWNLOAD1=${Release_download1}
-  DOWNLOAD2=${Release_download2}
+  if ! curl -fsSL ${Release_download1}/${CLOUD_Firmware} -o ${CLOUD_Firmware}; then
+    if ! wget -q ${Release_download2}/${CLOUD_Firmware} -O ${CLOUD_Firmware}; then
+      curl -fsSL ${Release_download2}/${CLOUD_Firmware} -o ${CLOUD_Firmware}
+    fi
+  fi
 else
-  DOWNLOAD1=${Release_download2}
-  DOWNLOAD2=${Release_download1}
-fi
-
-if ! curl -fsSL ${DOWNLOAD2}/${CLOUD_Firmware} -o ${CLOUD_Firmware}; then
-  if ! wget -q ${DOWNLOAD1}/${CLOUD_Firmware} -O ${CLOUD_Firmware}; then
-    curl -fsSL ${DOWNLOAD1}/${CLOUD_Firmware} -o ${CLOUD_Firmware}
+  if ! curl -fsSL ${Release_download2}/${CLOUD_Firmware} -o ${CLOUD_Firmware}; then
+    if ! wget -q ${Release_download1}/${CLOUD_Firmware} -O ${CLOUD_Firmware}; then
+      curl -fsSL ${Release_download1}/${CLOUD_Firmware} -o ${CLOUD_Firmware}
+    fi
   fi
 fi
 
