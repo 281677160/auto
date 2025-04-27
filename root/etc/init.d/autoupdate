@@ -16,8 +16,6 @@ run_autoupdate()
 			sed -i '/AutoUpdate/d' /etc/crontabs/root >/dev/null 2>&1
 			echo "$minute $hour * * $week AutoUpdate -u" >> /etc/crontabs/root
 			/etc/init.d/cron restart
-		else
-			stop	
 		fi
 		cus_url="$(uci get autoupdate.@login[0].github)"
 		if [[ -n "$(echo "${cus_url}" |grep -E "https://github.com/.*/")" ]]; then
