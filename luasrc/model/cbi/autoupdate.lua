@@ -46,12 +46,12 @@ local function get_sys_info()
     end
     
     -- 获取系统信息
-    info.github_url = luci.sys.exec("grep 'GITHUB_LINK=' /etc/openwrt_update | cut -c13-") or ""
-    info.cloud_version = luci.sys.exec("cat /tmp/cloud_version 2>/dev/null") or translate("Unknown")
-    info.current_version = luci.sys.exec("grep 'CURRENT_Version=' /etc/openwrt_update | cut -c17-") or ""
-    info.current_model = luci.sys.exec("grep 'CURRENT_Device=' /tmp/Version_Tags 2>/dev/null | cut -c16-") or ""
-    info.model_type = luci.sys.exec("grep 'MODEL_type=' /tmp/Version_Tags 2>/dev/null | cut -c12-") or ""
-    info.kernel_type = luci.sys.exec("grep 'KERNEL_type=' /tmp/Version_Tags 2>/dev/null | cut -c13-") or ""
+    info.github_url = luci.sys.exec("awk -F'=' '/GITHUB_LINK=/ {print $2}' /etc/openwrt_update") or ""
+    info.cloud_version = luci.sys.exec("awk '{print $1}' /tmp/cloud_version 2>/dev/null") or translate("Unknown")
+    info.current_version = luci.sys.exec("awk -F'=' '/CURRENT_Version=/ {print $2}' /etc/openwrt_update") or ""
+    info.current_model = luci.sys.exec("awk -F'=' '/CURRENT_Device=/ {print $2}' /tmp/Version_Tags 2>/dev/null") or ""
+    info.model_type = luci.sys.exec("awk -F'=' '/MODEL_type=/ {print $2}' /tmp/Version_Tags 2>/dev/null") or ""
+    info.kernel_type = luci.sys.exec("awk -F'=' '/KERNEL_type=/ {print $2}' /tmp/Version_Tags 2>/dev/null") or ""
     
     return info
 end
