@@ -40,9 +40,9 @@ fi
 
 Kernel=$(uname -rs | cut -d ' ' -f2)
 CURRENT_Device=$(awk -F': ' '/model name/ {print $2; exit}' /proc/cpuinfo)
-LOCAL_Version=$(echo "${CURRENT_Version}" |sed "s/.*${DEFAULT_Device}//g" |grep -Eo [0-9]+)
-CLOUD_Firmware=$(grep -Eo "${LUCI_EDITION}-${SOURCE}-${TARGET_PROFILE_ER}-[0-9]+-${BOOT_Type}-[a-zA-Z0-9]+${Firmware_SFX}" /tmp/api_version | awk 'END {print}')
-CLOUD_Version=$(echo "${CLOUD_Firmware}" |sed "s/.*${DEFAULT_Device}//g" |sed "s/${BOOT_Type}.*//g" |grep -Eo [0-9]+)
+LOCAL_Version=$(echo "${CURRENT_Version}" | awk -F'-' '{print $NF}')
+CLOUD_Firmware=$(grep -Eo "${LUCI_EDITION}-${SOURCE}-${DEFAULT_Device}-[0-9]+-${BOOT_Type}-[a-zA-Z0-9]+${Firmware_SFX}" /tmp/api_version | awk 'END {print}')
+CLOUD_Version=$(echo "${CLOUD_Firmware}" | awk -F'-' '{print $(NF-1)}')
 LUCI_Firmware="${SOURCE}-${DEFAULT_Device}-${CLOUD_Version}"
 if [[ -z "${CLOUD_Firmware}" ]] && [[ -z "${CLOUD_Version}" ]] && [[ -z "${LUCI_Firmware}" ]]; then
   echo "获取云端信息失败,x86注意本地跟云端固件显示的引导模式是否一致,或者就是云端压根就没您同类型的固件存在,或者作者更了固件获取条件导致您本地跟云端信息不一直!" > /tmp/cloud_version
