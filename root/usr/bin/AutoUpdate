@@ -75,8 +75,8 @@ if [[ "${LOCAL_Version}" -eq "${CLOUD_Version}" ]]; then
   echo "no_update" > /tmp/version_compare
 else
   echo "update_available" > /tmp/version_compare
-  echo "${LOCAL_Version}" > /tmp/local_version
-  echo "${CLOUD_Version}" > /tmp/cloud_version
+  echo "${LOCAL_Version}" > /tmp/locala_version
+  echo "${CLOUD_Version}" > /tmp/clouda_version
 fi
 }
 
