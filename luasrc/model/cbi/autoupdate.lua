@@ -1,56 +1,79 @@
 require("luci.sys")
+require("luci.http")
+require("luci.dispatcher")
 
-m=Map("autoupdate",translate("AutoUpdate"),translate("AutoUpdate LUCI supports one-click firmware upgrade and scheduled upgrade"))
+local m = Map("autoupdate", translate("AutoUpdate"),
+    translate("AutoUpdate LUCI supports one-click firmware upgrade and scheduled upgrade"))
 
-s=m:section(TypedSection,"login","")
-s.addremove=false
-s.anonymous=true
+local s = m:section(TypedSection, "login", "")
+s.addremove = false
+s.anonymous = true
 
-o = s:option(Flag, "enable", translate("Enable AutoUpdate"),translate("Automatically update firmware during the specified time"))
+-- 自动更新开关
+local o = s:option(Flag, "enable", translate("Enable AutoUpdate"),
+    translate("Automatically update firmware during the specified time"))
 o.default = 0
-o.optional = false
+o.rmempty = false
 
-week=s:option(ListValue,"week",translate("xWeek Day"))
-week:value(7,translate("Everyday"))
-week:value(1,translate("Monday"))
-week:value(2,translate("Tuesday"))
-week:value(3,translate("Wednesday"))
-week:value(4,translate("Thursday"))
-week:value(5,translate("Friday"))
-week:value(6,translate("Saturday"))
-week:value(0,translate("Sunday"))
-week.default=0
+-- 更新时间设置
+local week = s:option(ListValue, "week", translate("Week Day"))
+week:value(7, translate("Everyday"))
+for i = 0, 6 do
+    week:value(i, translate(os.date("%A", os.time({year=2000, month=1, day=2+i}))))
+end
+week.default = 0
 
-hour=s:option(Value,"hour",translate("xHour"))
+local hour = s:option(Value, "hour", translate("Hour"))
 hour.datatype = "range(0,23)"
 hour.rmempty = false
 
-pass=s:option(Value,"minute",translate("xMinute"))
-pass.datatype = "range(0,59)"
-pass.rmempty = false
+local minute = s:option(Value, "minute", translate("Minute"))
+minute.datatype = "range(0,59)"
+minute.rmempty = false
 
-local github_url = luci.sys.exec("grep GITHUB_LINK= /etc/openwrt_update | cut -c13-100")
-o=s:option(Value,"github",translate("Github Url"))
-o.default=github_url
-
-luci.sys.call ( "/usr/share/autoupdate/Check_Update.sh > /dev/null")
-local cloud_version = luci.sys.exec("cat /tmp/cloud_version")
-local current_version = luci.sys.exec("grep CURRENT_Version= /etc/openwrt_update | cut -c17-100")
-local current_model = luci.sys.exec("grep CURRENT_Device= /tmp/Version_Tags | cut -c16-100")
-local MODEL_type = luci.sys.exec("grep MODEL_type= /tmp/Version_Tags | cut -c12-100")
-local KERNEL_type = luci.sys.exec("grep KERNEL_type= /tmp/Version_Tags | cut -c13-100")
-
-button_upgrade_firmware = s:option (Button, "_button_upgrade_firmware", translate("Upgrade to Latested Version"),
-translatef("若有更新可点击上方 手动更新 后请耐心等待至路由器重启.") .. "<br><br>当前固件版本: " .. current_version .. "<br>云端固件版本: " .. cloud_version.. "<br><br>设备名称: " .. current_model .. "<br>内核版本: " .. KERNEL_type .. "<br>固件类型: " .. MODEL_type)
-button_upgrade_firmware.inputtitle = translate ("Do Upgrade")
-button_upgrade_firmware.write = function()
-	luci.sys.call ("AutoUpdate -u > /dev/null")
+-- 获取系统信息
+local function get_sys_info()
+    local info = {}
+    info.github_url = luci.sys.exec("grep GITHUB_LINK= /etc/openwrt_update | cut -c13-")
+    luci.sys.call("/usr/bin/AutoUpdate > /dev/null")
+    info.cloud_version = luci.sys.exec("cat /tmp/cloud_version")
+    info.current_version = luci.sys.exec("grep CURRENT_Version= /etc/openwrt_update | cut -c17-")
+    info.current_model = luci.sys.exec("grep CURRENT_Device= /tmp/Version_Tags | cut -c16-")
+    info.model_type = luci.sys.exec("grep MODEL_type= /tmp/Version_Tags | cut -c12-")
+    info.kernel_type = luci.sys.exec("grep KERNEL_type= /tmp/Version_Tags | cut -c13-")
+    return info
 end
 
-local e=luci.http.formvalue("cbi.apply")
-if e then
-	io.popen("/etc/init.d/autoupdate restart")
+local sys_info = get_sys_info()
+
+-- GitHub URL 设置
+local github = s:option(Value, "github", translate("GitHub URL"))
+github.default = sys_info.github_url
+github.rmempty = false
+
+-- 升级按钮（优化点击区域）
+local button_upgrade_firmware = s:option(Button, "_button_upgrade_firmware", 
+    translate("Upgrade to Latest Version"),
+    translatef("Click the button below to upgrade to the latest version. Please wait patiently until the router reboots.") .. 
+    "<br><br>" .. translate("Current firmware version:") .. " " .. sys_info.current_version .. 
+    "<br>" .. translate("Latest firmware version:") .. " " .. sys_info.cloud_version .. 
+    "<br><br>" .. translate("Device model:") .. " " .. sys_info.current_model .. 
+    "<br>" .. translate("Kernel version:") .. " " .. sys_info.kernel_type .. 
+    "<br>" .. translate("Firmware type:") .. " " .. sys_info.model_type)
+
+button_upgrade_firmware.inputtitle = translate("Start Upgrade")
+button_upgrade_firmware.template = "autoupdate/upgrade_button"
+button_upgrade_firmware.write = function()
+    luci.http.script([[
+        if(confirm("]]..translate("Are you sure you want to upgrade the firmware?")..[[")) {
+            window.location="/cgi-bin/luci/admin/system/autoupdate/do_upgrade"
+        }
+    ]])
+end
+
+-- 应用设置后重启服务
+function m.on_commit(self)
+    luci.sys.call("/etc/init.d/autoupdate restart")
 end
 
 return m
-
