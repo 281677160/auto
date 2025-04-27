@@ -76,9 +76,9 @@ if [[ -n "${LOCAL_Version}" ]] && [[ -n "${CLOUD_Version}" ]] && [[ -n "${LUCI_F
 	fi
 fi
 if [[ "${LOCAL_Version}" -eq "${CLOUD_Version}" ]]; then
-  echo "no_update" > /tmp/version_compare
+  echo "no_update" > /tmp/compare_version
 else
-  echo "update_available" > /tmp/version_compare
+  echo "update_available" > /tmp/compare_version
   echo "${LOCAL_Version}" > /tmp/locala_version
   echo "${CLOUD_Version}" > /tmp/clouda_version
 fi
@@ -86,8 +86,8 @@ fi
 
 function Remote_upgrade() {
 TMP_Available=$(df -m | grep "/tmp" | awk '{print $4}' | awk 'NR==1' | awk -F. '{print $1}')
-let X=$(grep -n "${CLOUD_Firmware}" ${API_PATH} | tail -1 | cut -d : -f 1)-4
-let CLOUD_Firmware_Size=$(sed -n "${X}p" ${API_PATH} | grep -Eo "[0-9]+" | awk '{print ($1)/1048576}' | awk -F. '{print $1}')+1
+let X=$(grep -n "${CLOUD_Firmware}" /tmp/api_version | tail -1 | cut -d : -f 1)-4
+let CLOUD_Firmware_Size=$(sed -n "${X}p" /tmp/api_version | grep -Eo "[0-9]+" | awk '{print ($1)/1048576}' | awk -F. '{print $1}')+1
 if [[ "${TMP_Available}" -lt "${CLOUD_Firmware_Size}" ]]; then
   echo "固件tmp空间值[${TMP_Available}M],云端固件体积[${CLOUD_Firmware_Size}M],空间不足" > /tmp/cloud_version
   exit 0
