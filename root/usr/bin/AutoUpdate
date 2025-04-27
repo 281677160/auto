@@ -14,8 +14,8 @@ else
   exit 1
 fi
 
-if ! curl -fsSL ${Release_download1}/zzz_api -o /tmp/api_version; then
-  curl -fsSL ${Release_download2}/zzz_api -o /tmp/api_version
+if ! curl -fsSL --max-time 30 "${Release_download1}/zzz_api" -o /tmp/api_version; then
+  curl -fsSL --max-time 30 "${Release_download2}/zzz_api" -o /tmp/api_version
 fi
 
 if [[ -z "$(grep -E "assets" /tmp/api_version)" ]]; then
