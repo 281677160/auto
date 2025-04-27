@@ -5,6 +5,10 @@
 # /usr/bin/AutoUpdate
 
 function Remote_detection() {
+rm -rf /tmp/*_version
+rm -rf /tmp/*_version
+rm -rf /tmp/*_version
+
 if [[ -f "/etc/openwrt_update" ]]; then
   source /etc/openwrt_update
 else
@@ -12,11 +16,11 @@ else
   exit 1
 fi
 
-if ! curl -fsSL ${Release_download1}/zzz_api -o /tmp/openwrt_api; then
-  curl -fsSL ${Release_download2}/zzz_api -o /tmp/openwrt_api
+if ! curl -fsSL ${Release_download1}/zzz_api -o /tmp/api_version; then
+  curl -fsSL ${Release_download2}/zzz_api -o /tmp/api_version
 fi
 
-if [[ -z "$(grep -E "assets" /tmp/openwrt_api)" ]]; then
+if [[ -z "$(grep -E "assets" /tmp/api_version)" ]]; then
   echo "获取API数据失败,请检测网络,或您的github仓库为私库?" > /tmp/cloud_version
   exit 1
 fi
@@ -39,7 +43,7 @@ fi
 Kernel=$(uname -rs | cut -d ' ' -f2)
 CURRENT_Device=$(awk -F': ' '/model name/ {print $2; exit}' /proc/cpuinfo)
 LOCAL_Version=$(echo "${CURRENT_Version}" |sed "s/.*${DEFAULT_Device}//g" |grep -Eo [0-9]+)
-CLOUD_Firmware=$(grep -Eo "${LUCI_EDITION}-${SOURCE}-${TARGET_PROFILE_ER}-[0-9]+-${BOOT_Type}-[a-zA-Z0-9]+${Firmware_SFX}" /tmp/openwrt_api | awk 'END {print}')
+CLOUD_Firmware=$(grep -Eo "${LUCI_EDITION}-${SOURCE}-${TARGET_PROFILE_ER}-[0-9]+-${BOOT_Type}-[a-zA-Z0-9]+${Firmware_SFX}" /tmp/api_version | awk 'END {print}')
 CLOUD_Version=$(echo "${CLOUD_Firmware}" |sed "s/.*${DEFAULT_Device}//g" |sed "s/${BOOT_Type}.*//g" |grep -Eo [0-9]+)
 LUCI_Firmware="${SOURCE}-${DEFAULT_Device}-${CLOUD_Version}"
 if [[ -z "${CLOUD_Firmware}" ]] && [[ -z "${CLOUD_Version}" ]] && [[ -z "${LUCI_Firmware}" ]]; then
