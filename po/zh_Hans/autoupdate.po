@@ -67,5 +67,3 @@ msgstr "开始升级固件,请耐心等待路由器重启"
 
 msgid "Check update script failed!"
 msgstr "检查更新脚本失败"
-
-
