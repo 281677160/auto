@@ -92,7 +92,7 @@ button_upgrade_firmware.template = "autoupdate/upgrade_button"
 
 function button_upgrade_firmware.write(self, section)
     -- 执行升级命令
-    local upgrade_result = luci.sys.call("AutoUpdate -u > /tmp/autoupdate.log 2>&1 &")
+    local upgrade_result = luci.sys.call("AutoUpdate -u >> /tmp/autoupdate.log 2>&1 &")
     
     if upgrade_result == 0 then
         luci.http.write("<script>alert('"..translate("Upgrade started successfully! Router will reboot soon.").."')</script>")
