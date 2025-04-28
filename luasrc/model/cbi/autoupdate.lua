@@ -34,6 +34,9 @@ minute.rmempty = false
 -- 改进的获取系统信息函数
 local function get_sys_info()
     local info = {}
+
+    -- 清理旧文件
+    os.execute("rm -f /tmp/compare_version 2>/dev/null")
     
     -- 确保脚本可执行
     os.execute("chmod +x /usr/bin/AutoUpdate")
@@ -60,7 +63,6 @@ local function get_sys_info()
     -- 获取系统信息
     info.github_url = luci.sys.exec("awk -F'=' '/GITHUB_LINK=/ {print $2}' /etc/openwrt_update") or ""
     info.local_version = luci.sys.exec("awk -F'=' '/FIRMWARE_VERSION=/ {print $2}' /etc/openwrt_update") or ""
-    info.cloud_version = luci.sys.exec("cat /tmp/cloud_version 2>/dev/null") or translate("Unknown")
     info.equipment_name = luci.sys.exec("awk -F'=' '/EQUIPMENT_NAME=/ {print $2}' /tmp/tags_version 2>/dev/null") or ""
     info.model_type = luci.sys.exec("awk -F'=' '/MODEL_TYPE=/ {print $2}' /tmp/tags_version 2>/dev/null") or ""
     info.kernel_type = luci.sys.exec("awk -F'=' '/KERNEL_TYPE=/ {print $2}' /tmp/tags_version 2>/dev/null") or ""
