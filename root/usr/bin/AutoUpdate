@@ -25,14 +25,14 @@ fi
 }
 
 function Remote_information() {
-[ ! -d "${Download_Path}" ] && mkdir -p ${Download_Path} || rm -rf "${Download_Path}"/*
+[ ! -d "${DOWNLOAD_PATH}" ] && mkdir -p ${DOWNLOAD_PATH} || rm -rf "${DOWNLOAD_PATH}"/*
 if [[ "${TARGET_BOARD}" == "x86" ]]; then
   if [[ -d '/sys/firmware/efi' ]]; then
     BOOT_Type=uefi
   else
     BOOT_Type=legacy
   fi
-elif [[ "${Firmware_SFX}" == ".img.gz" ]]; then
+elif [[ "${FIRMWARE_SUFFIX}" == ".img.gz" ]]; then
   BOOT_Type=legacy
 else
   BOOT_Type=sysupgrade
@@ -40,10 +40,10 @@ fi
 
 Kernel=$(uname -rs | cut -d ' ' -f2)
 CURRENT_Device=$(awk -F': ' '/model name/ {print $2; exit}' /proc/cpuinfo)
-LOCAL_Version=$(echo "${CURRENT_Version}" | awk -F'-' '{print $NF}')
-CLOUD_Firmware=$(grep -Eo "${LUCI_EDITION}-${SOURCE}-${DEFAULT_Device}-[0-9]+-${BOOT_Type}-[a-zA-Z0-9]+${Firmware_SFX}" /tmp/api_version | awk 'END {print}')
-CLOUD_Version=$(echo "${CLOUD_Firmware}" |sed "s/.*${DEFAULT_Device}//g" |sed "s/${BOOT_Type}.*//g" |grep -Eo [0-9]+)
-LUCI_Firmware="${SOURCE}-${DEFAULT_Device}-${CLOUD_Version}"
+LOCAL_Version=$(echo "${FIRMWARE_VERSION}" | awk -F'-' '{print $NF}')
+CLOUD_Firmware=$(grep -Eo "${LUCI_EDITION}-${SOURCE}-${DEVICE_MODEL}-[0-9]+-${BOOT_Type}-[a-zA-Z0-9]+${FIRMWARE_SUFFIX}" /tmp/api_version | awk 'END {print}')
+CLOUD_Version=$(echo "${CLOUD_Firmware}" |sed "s/.*${DEVICE_MODEL}//g" |sed "s/${BOOT_Type}.*//g" |grep -Eo [0-9]+)
+LUCI_Firmware="${SOURCE}-${DEVICE_MODEL}-${CLOUD_Version}"
 if [[ -z "${CLOUD_Firmware}" ]] && [[ -z "${CLOUD_Version}" ]] && [[ -z "${LUCI_Firmware}" ]]; then
   echo "获取云端信息失败,x86注意本地跟云端固件显示的引导模式是否一致,或者就是云端压根就没您同类型的固件存在,或者作者更了固件获取条件导致您本地跟云端信息不一直!" > /tmp/cloud_version
   exit 0
@@ -53,7 +53,7 @@ cat > /tmp/Version_Tags <<-EOF
 LOCAL_Version=${LOCAL_Version}
 CLOUD_Version=${CLOUD_Version}
 LUCI_Firmware=${LUCI_Firmware}
-MODEL_type=${BOOT_Type}${Firmware_SFX}
+MODEL_type=${BOOT_Type}${FIRMWARE_SUFFIX}
 KERNEL_type=${Kernel} - ${LUCI_EDITION}
 CURRENT_Device=${CURRENT_Device}
 EOF
@@ -86,7 +86,7 @@ elif [[ "${LOCAL_Version}" -gt "${CLOUD_Version}" ]]; then
   exit 0
 fi
 
-cd "${Download_Path}"
+cd "${DOWNLOAD_PATH}"
 if [[  "$(curl -I -s --connect-timeout 8 google.com -w %{http_code} | tail -n1)" == "301" ]]; then
   if ! curl -fsSL ${Release_download1}/${CLOUD_Firmware} -o ${CLOUD_Firmware}; then
     if ! wget -q ${Release_download2}/${CLOUD_Firmware} -O ${CLOUD_Firmware}; then
@@ -107,7 +107,7 @@ if [[ $? -ne 0 ]]; then
 fi
 
 LOCAL_MD5256=$(md5sum ${CLOUD_Firmware} |cut -c1-3)$(sha256sum ${CLOUD_Firmware} |cut -c1-3)
-CLOUD__MD5256=$(echo ${CLOUD_Firmware} |grep -Eo "[a-zA-Z0-9]+${Firmware_SFX}" | sed -r "s/(.*)${Firmware_SFX}/\1/")
+CLOUD__MD5256=$(echo ${CLOUD_Firmware} |grep -Eo "[a-zA-Z0-9]+${FIRMWARE_SUFFIX}" | sed -r "s/(.*)${FIRMWARE_SUFFIX}/\1/")
 if [[ ! "${CLOUD__MD5256}" == "${LOCAL_MD5256}" ]]; then
   echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") MD5对比失败,固件可能在下载时损坏,请检查网络后重试!]" > /tmp/cloud_version
   exit 0
