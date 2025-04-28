@@ -12,7 +12,7 @@ rm -rf /tmp/AutoUpdate.log
 if [[ -f "/etc/openwrt_update" ]]; then
   source /etc/openwrt_update
 else
-  echo "缺少openwrt_update文件?" > /tmp/cloud_version
+  echo "缺少openwrt_update文件" > /tmp/cloud_version
   exit 1
 fi
 
