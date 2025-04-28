@@ -20,7 +20,7 @@ function action_upgrade()
     end
 
     -- 执行基础检查命令
-    local check_result = luci.sys.call("AutoUpdate > /tmp/update_check.log 2>&1")
+    local check_result = luci.sys.call("AutoUpdate >> /tmp/autoupdate.log 2>&1 &")
     if check_result ~= 0 then
         -- 新增版本文件判断:ml-citation{ref="2,6" data="citationList"}
         if check_version_file() then
@@ -32,7 +32,7 @@ function action_upgrade()
     end
 
     -- 执行升级命令
-    local upgrade_result = luci.sys.call("AutoUpdate -u > /tmp/autoupdate.log 2>&1 &")
+    local upgrade_result = luci.sys.call("AutoUpdate -u >> /tmp/autoupdate.log 2>&1 &")
     if upgrade_result ~= 0 then
         -- 新增升级失败时的文件判断:ml-citation{ref="4,6" data="citationList"}
         if check_version_file() then
