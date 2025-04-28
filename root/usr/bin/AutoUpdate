@@ -25,7 +25,6 @@ fi
 }
 
 function Remote_information() {
-[ ! -d "${DOWNLOAD_PATH}" ] && mkdir -p ${DOWNLOAD_PATH} || rm -rf "${DOWNLOAD_PATH}"/*
 if [[ "${TARGET_BOARD}" == "x86" ]]; then
   if [[ -d '/sys/firmware/efi' ]]; then
     BOOT_TYPE=uefi
@@ -72,6 +71,7 @@ fi
 }
 
 function Remote_upgrade() {
+[ ! -d "${DOWNLOAD_PATH}" ] && mkdir -p ${DOWNLOAD_PATH} || rm -rf $DOWNLOAD_PATH/*
 TMP_AVAILABLE=$(df -m | grep "/tmp" | awk '{print $4}' | awk 'NR==1' | awk -F. '{print $1}')
 let X=$(grep -n "${REMOTE_FIRMWARE}" /tmp/api_version | tail -1 | cut -d : -f 1)-4
 let CLOUD_FIRMWARE_SIZE=$(sed -n "${X}p" /tmp/api_version | grep -Eo "[0-9]+" | awk '{print ($1)/1048576}' | awk -F. '{print $1}')+1
