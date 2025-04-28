@@ -120,10 +120,10 @@ if [[ -f "/etc/deletefile" ]]; then
   source /etc/deletefile
 fi
 
-mv -r /etc/config/luci /tmp/luciaaa
+mv /etc/config/luci /tmp/luciaaa
 echo "*/5 * * * * sleep 240; sh /etc/networkdetection > /dev/null 2>&1" >> /etc/crontabs/root
 rm -rf /mnt/*upback.tar.gz && sysupgrade -b /mnt/upback.tar.gz
-mv -r /tmp/luciaaa /etc/config/luci
+mv /tmp/luciaaa /etc/config/luci
 if [[ -n "$(ls -1 /mnt | grep -E 'upback.tar.gz')" ]]; then
   UPGRADE_COMMAND='sysupgrade -F -f /mnt/upback.tar.gz'
 else
