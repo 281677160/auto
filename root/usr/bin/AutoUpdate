@@ -122,6 +122,7 @@ fi
 
 mv /etc/config/luci /tmp/luciaaa
 echo "*/5 * * * * sleep 240; sh /etc/networkdetection > /dev/null 2>&1" >> /etc/crontabs/root
+/etc/init.d/cron restart
 rm -rf /mnt/*upback.tar.gz && sysupgrade -b /mnt/upback.tar.gz
 mv /tmp/luciaaa /etc/config/luci
 if [[ -n "$(ls -1 /mnt | grep -E 'upback.tar.gz')" ]]; then
