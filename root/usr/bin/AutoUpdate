@@ -128,6 +128,7 @@ else
 fi
 echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 升级固件中，请勿断开路由器电源，END]" >> /tmp/AutoUpdate.log
 ${UPGRADE_COMMAND} ${REMOTE_FIRMWARE}
+exit 0
 }
 
 case "$1" in
