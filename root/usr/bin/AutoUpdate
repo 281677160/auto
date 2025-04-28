@@ -105,7 +105,7 @@ LOCAL_MD5256=$(md5sum ${REMOTE_FIRMWARE} |cut -c1-3)$(sha256sum ${REMOTE_FIRMWAR
 CLOUD__MD5256=$(echo ${REMOTE_FIRMWARE} |grep -Eo "[a-zA-Z0-9]+${FIRMWARE_SUFFIX}" | sed -r "s/(.*)${FIRMWARE_SUFFIX}/\1/")
 if [[ ! "${CLOUD__MD5256}" == "${LOCAL_MD5256}" ]]; then
   echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") MD5对比失败,固件可能在下载时损坏,请检查网络后重试!]" >> /tmp/AutoUpdate.log
-  exit 0
+  exit 1
 fi
 
 echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 正在执行更新,更新期间请不要断开电源或重启设备 ...]" >> /tmp/AutoUpdate.log
