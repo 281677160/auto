@@ -38,7 +38,7 @@ function action_upgrade()
         if check_version_file() then
             luci.http.write_json({ success = false, message = "云端没有最新固件,无需更新" })
         else
-            luci.http.write_json({ success = false, message = "Upgrade failed" })
+            luci.http.write_json({ success = false, message = "Check update failed" })
         end
         return
     end
