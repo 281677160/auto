@@ -56,8 +56,8 @@ local function get_sys_info()
     end
     
     -- 获取系统信息
-    info.github_url = luci.sys.exec("awk -F'=' '/GITHUB_LINK=/ {print $2}' /etc/openwrt_update") or ""
-    info.local_version = luci.sys.exec("awk -F'=' '/FIRMWARE_VERSION=/ {print $2}' /etc/openwrt_update") or ""
+    info.github_url = luci.sys.exec("awk -F'=' '/GITHUB_LINK=/ {gsub(/"/, ""); print $2}' /etc/openwrt_update") or ""
+    info.local_version = luci.sys.exec("awk -F'=' '/FIRMWARE_VERSION=/ {gsub(/"/, ""); print $2}' /etc/openwrt_update") or ""
     info.cloud_version = luci.sys.exec("cat /tmp/cloud_version 2>/dev/null") or ""
     info.equipment_name = luci.sys.exec("awk -F'=' '/EQUIPMENT_NAME=/ {print $2}' /tmp/tags_version 2>/dev/null") or ""
     info.model_type = luci.sys.exec("awk -F'=' '/MODEL_TYPE=/ {print $2}' /tmp/tags_version 2>/dev/null") or ""
