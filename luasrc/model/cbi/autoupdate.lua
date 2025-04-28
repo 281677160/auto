@@ -81,9 +81,9 @@ github.rmempty = false
 -- 升级按钮（带执行功能）
 local button_upgrade_firmware = s:option(Button, "_upgrade", translate("Upgrade to Latest Version"),
 translatef("Click the button below to upgrade to the latest version. Please wait patiently until the router reboots.") ..
-"<br><br>" .. translate("local firmware version:") .. " " .. sys_info.local_version ..
-"<br>" .. translate("cloud firmware version:") .. " " .. sys_info.cloud_version ..
-"<br><br>" .. translate("Device model:") .. " " .. sys_info.equipment_name ..
+"<br><br>" .. translate("Local firmware version:") .. " " .. sys_info.local_version ..
+"<br>" .. translate("Cloud firmware version:") .. " " .. sys_info.cloud_version ..
+"<br><br>" .. translate("Equipment_name:") .. " " .. sys_info.equipment_name ..
 "<br>" .. translate("Kernel version:") .. " " .. sys_info.kernel_type ..
 "<br>" .. translate("Firmware type:") .. " " .. sys_info.model_type)
 
