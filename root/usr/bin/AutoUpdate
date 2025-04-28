@@ -109,7 +109,7 @@ fi
 
 echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 正在执行更新,更新期间请不要断开电源或重启设备 ...]" >> /tmp/AutoUpdate.log
 chmod 755 "${REMOTE_FIRMWARE}"
-if [[ `opkg list | awk '{print $1}' | grep -c gzip` -ge '1' ]]; then
+if [[ -n "$(opkg list | awk '{print $1}' | grep -E 'gzip')" ]]; then
   opkg remove gzip > /dev/null 2>&1
 fi
 
@@ -120,7 +120,7 @@ fi
 rm -rf /etc/config/luci
 echo "*/5 * * * * sleep 240; sh /etc/networkdetection > /dev/null 2>&1" >> /etc/crontabs/root
 rm -rf /mnt/*upback.tar.gz && sysupgrade -b /mnt/upback.tar.gz
-if [[ `ls -1 /mnt | grep -c "upback.tar.gz"` -eq '1' ]]; then
+if [[ -n "$(ls -1 /mnt | grep -E 'upback.tar.gz')" ]]; then
   UPGRADE_COMMAND='sysupgrade -F -f /mnt/upback.tar.gz'
 else
   UPGRADE_COMMAND='sysupgrade -F -q'
