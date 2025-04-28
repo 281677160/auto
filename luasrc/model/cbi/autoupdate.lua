@@ -41,8 +41,20 @@ local function get_sys_info()
     -- 执行检查更新脚本并捕获返回值
     local check_result = luci.sys.call("/usr/bin/AutoUpdate > /dev/null 2>&1")
     
-    if check_result ~= 0 then
-        luci.http.write("<script>alert('"..translate("Check update script failed!").."')</script>")
+    -- 新增文件检查逻辑（优先级高于返回码）
+    local ver_file = io.open("/tmp/compare_version", "r")
+    if ver_file then
+        local content = ver_file:read("*l") or ""
+        ver_file:close()
+        -- 使用正则匹配消除所有空白字符
+        if content:gsub("%s+", "") == "no_update" then
+            info.cloud_version = translate("No updates available")
+            info.no_update = true  -- 添加状态标记
+        else
+            info.cloud_version = luci.sys.exec("cat /tmp/cloud_version 2>/dev/null") or translate("Unknown")
+        end
+    else
+        info.cloud_version = translate("Unknown")
     end
     
     -- 获取系统信息
@@ -52,6 +64,11 @@ local function get_sys_info()
     info.equipment_name = luci.sys.exec("awk -F'=' '/EQUIPMENT_NAME=/ {print $2}' /tmp/tags_version 2>/dev/null") or ""
     info.model_type = luci.sys.exec("awk -F'=' '/MODEL_TYPE=/ {print $2}' /tmp/tags_version 2>/dev/null") or ""
     info.kernel_type = luci.sys.exec("awk -F'=' '/KERNEL_TYPE=/ {print $2}' /tmp/tags_version 2>/dev/null") or ""
+    
+    -- 错误处理逻辑调整
+    if check_result ~= 0 and not info.no_update then
+        luci.http.write("<script>alert('"..translate("Check update script failed!").."')</script>")
+    end
     
     return info
 end
