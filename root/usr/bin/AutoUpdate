@@ -94,7 +94,7 @@ else
   fi
 fi
 
-find . -maxdepth 1 -type f -size -2M -delete
+find . -maxdepth 1 -type f -size -2097152c -exec rm -f {} \;
 
 if [[ ! -f "${REMOTE_FIRMWARE}" ]]; then
   echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 下载云端固件失败,请检查网络再尝试或手动安装固件]" >> /tmp/AutoUpdate.log
