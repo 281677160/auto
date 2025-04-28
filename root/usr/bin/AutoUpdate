@@ -48,8 +48,7 @@ if [[ -z "${LOCAL_VERSION}" ]] && [[ -z "${CLOUD_VERSION}" ]]; then
   exit 1
 fi
 
-cat > /tmp/Version_Tags <<-EOF
-FIRMWARE_VERSION=${FIRMWARE_VERSION}
+cat > /tmp/tags_version <<-EOF
 MODEL_TYPE=${BOOT_TYPE}${FIRMWARE_SUFFIX}
 KERNEL_TYPE=${KERNEL_MODE} - ${LUCI_EDITION}
 EQUIPMENT_NAME=${EQUIPMENT_NAME}
