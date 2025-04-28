@@ -47,11 +47,11 @@ local function get_sys_info()
     
     -- 获取系统信息
     info.github_url = luci.sys.exec("awk -F'=' '/GITHUB_LINK=/ {print $2}' /etc/openwrt_update") or ""
+    info.local_version = luci.sys.exec("awk -F'=' '/FIRMWARE_VERSION=/ {print $2}' /etc/openwrt_update") or ""
     info.cloud_version = luci.sys.exec("cat /tmp/cloud_version 2>/dev/null") or translate("Unknown")
-    info.current_version = luci.sys.exec("awk -F'=' '/CURRENT_Version=/ {print $2}' /etc/openwrt_update") or ""
-    info.current_model = luci.sys.exec("awk -F'=' '/CURRENT_Device=/ {print $2}' /tmp/Version_Tags 2>/dev/null") or ""
-    info.model_type = luci.sys.exec("awk -F'=' '/MODEL_type=/ {print $2}' /tmp/Version_Tags 2>/dev/null") or ""
-    info.kernel_type = luci.sys.exec("awk -F'=' '/KERNEL_type=/ {print $2}' /tmp/Version_Tags 2>/dev/null") or ""
+    info.equipment_name = luci.sys.exec("awk -F'=' '/EQUIPMENT_NAME=/ {print $2}' /tmp/Version_Tags 2>/dev/null") or ""
+    info.model_type = luci.sys.exec("awk -F'=' '/MODEL_TYPE=/ {print $2}' /tmp/Version_Tags 2>/dev/null") or ""
+    info.kernel_type = luci.sys.exec("awk -F'=' '/KERNEL_TYPE=/ {print $2}' /tmp/Version_Tags 2>/dev/null") or ""
     
     return info
 end
@@ -66,9 +66,9 @@ github.rmempty = false
 -- 升级按钮（带执行功能）
 local button_upgrade_firmware = s:option(Button, "_upgrade", translate("Upgrade to Latest Version"),
 translatef("Click the button below to upgrade to the latest version. Please wait patiently until the router reboots.") ..
-"<br><br>" .. translate("Current firmware version:") .. " " .. sys_info.current_version ..
+"<br><br>" .. translate("Current firmware version:") .. " " .. sys_info.local_version ..
 "<br>" .. translate("Latest firmware version:") .. " " .. sys_info.cloud_version ..
-"<br><br>" .. translate("Device model:") .. " " .. sys_info.current_model ..
+"<br><br>" .. translate("Device model:") .. " " .. sys_info.equipment_name ..
 "<br>" .. translate("Kernel version:") .. " " .. sys_info.kernel_type ..
 "<br>" .. translate("Firmware type:") .. " " .. sys_info.model_type)
 
