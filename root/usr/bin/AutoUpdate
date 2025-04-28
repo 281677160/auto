@@ -46,7 +46,7 @@ CLOUD_VERSION=$(echo "${REMOTE_FIRMWARE}" |sed "s/.*${DEVICE_MODEL}//g" |sed "s/
 CLOUD_FIRMWARE_VERSION="${SOURCE}-${DEVICE_MODEL}-${CLOUD_VERSION}"
 if [[ -z "${LOCAL_VERSION}" ]] && [[ -z "${CLOUD_VERSION}" ]]; then
   echo "获取云端信息失败,x86注意本地跟云端固件显示的引导模式是否一致,或者就是云端压根就没您同类型的固件存在,或者作者更了固件获取条件导致您本地跟云端信息不一直!" > /tmp/cloud_version
-  exit 0
+  exit 1
 fi
 
 cat > /tmp/Version_Tags <<-EOF
@@ -61,12 +61,12 @@ EOF
 if [[ -n "${LOCAL_VERSION}" ]] && [[ -n "${CLOUD_VERSION}" ]]; then
   if [[ "${LOCAL_VERSION}" -eq "${CLOUD_VERSION}" ]]; then
     echo "${CLOUD_FIRMWARE_VERSION} [已是最新]" > /tmp/cloud_version
-    exit 0
+    exit 1
   elif [[ "${LOCAL_VERSION}" -lt "${CLOUD_VERSION}" ]]; then
     echo "${CLOUD_FIRMWARE_VERSION} [有可更新固件]" > /tmp/cloud_version
   elif [[ "${LOCAL_VERSION}" -gt "${CLOUD_VERSION}" ]]; then
     echo "${CLOUD_FIRMWARE_VERSION} [云端最高版本固件,低于您现在所使用版本,请到云端查看原因]" > /tmp/cloud_version
-    exit 0
+    exit 1
   fi
 fi
 }
@@ -77,7 +77,7 @@ let X=$(grep -n "${REMOTE_FIRMWARE}" /tmp/api_version | tail -1 | cut -d : -f 1)
 let CLOUD_FIRMWARE_SIZE=$(sed -n "${X}p" /tmp/api_version | grep -Eo "[0-9]+" | awk '{print ($1)/1048576}' | awk -F. '{print $1}')+1
 if [[ "${TMP_AVAILABLE}" -lt "${CLOUD_FIRMWARE_SIZE}" ]]; then
   echo "固件tmp空间值[${TMP_AVAILABLE}M],云端固件体积[${CLOUD_FIRMWARE_SIZE}M],空间不足" > /tmp/cloud_version
-  exit 0
+  exit 1
 fi
 
 cd "${DOWNLOAD_PATH}"
