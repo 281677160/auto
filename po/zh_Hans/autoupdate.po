@@ -80,5 +80,5 @@ msgstr "脚本运行失败,请看页面显示信息"
 msgid "Upgrade started"
 msgstr "开始升级固件"
 
-msgid "There is no latest firmware available in the cloud, so there is no need to update it"
+msgid "There is no need to update it"
 msgstr "云端没有最新固件,无需更新"
