@@ -75,22 +75,22 @@ function Remote_upgrade() {
 TMP_AVAILABLE=$(df -m | grep "/tmp" | awk '{print $4}' | awk 'NR==1' | awk -F. '{print $1}')
 let X=$(grep -n "${REMOTE_FIRMWARE}" /tmp/api_version | tail -1 | cut -d : -f 1)-4
 let CLOUD_FIRMWARE_SIZE=$(sed -n "${X}p" /tmp/api_version | grep -Eo "[0-9]+" | awk '{print ($1)/1048576}' | awk -F. '{print $1}')+1
-if [[ "${TMP_Available}" -lt "${CLOUD_Firmware_Size}" ]]; then
+if [[ "${TMP_AVAILABLE}" -lt "${CLOUD_FIRMWARE_SIZE}" ]]; then
   echo "固件tmp空间值[${TMP_AVAILABLE}M],云端固件体积[${CLOUD_FIRMWARE_SIZE}M],空间不足" > /tmp/cloud_version
   exit 0
 fi
 
 cd "${DOWNLOAD_PATH}"
 if [[  "$(curl -I -s --connect-timeout 8 google.com -w %{http_code} | tail -n1)" == "301" ]]; then
-  if ! curl -fsSL ${RELEASE_DOWNLOAD1}/${CLOUD_Firmware} -o ${CLOUD_Firmware}; then
-    if ! wget -q ${RELEASE_DOWNLOAD2}/${CLOUD_Firmware} -O ${CLOUD_Firmware}; then
-      curl -fsSL ${RELEASE_DOWNLOAD2}/${CLOUD_Firmware} -o ${CLOUD_Firmware}
+  if ! curl -fsSL ${RELEASE_DOWNLOAD1}/${REMOTE_FIRMWARE} -o ${REMOTE_FIRMWARE}; then
+    if ! wget -q ${RELEASE_DOWNLOAD2}/${REMOTE_FIRMWARE} -O ${REMOTE_FIRMWARE}; then
+      curl -fsSL ${RELEASE_DOWNLOAD2}/${REMOTE_FIRMWARE} -o ${REMOTE_FIRMWARE}
     fi
   fi
 else
-  if ! curl -fsSL ${RELEASE_DOWNLOAD2}/${CLOUD_Firmware} -o ${CLOUD_Firmware}; then
-    if ! wget -q ${RELEASE_DOWNLOAD1}/${CLOUD_Firmware} -O ${CLOUD_Firmware}; then
-      curl -fsSL ${RELEASE_DOWNLOAD1}/${CLOUD_Firmware} -o ${CLOUD_Firmware}
+  if ! curl -fsSL ${RELEASE_DOWNLOAD2}/${REMOTE_FIRMWARE} -o ${REMOTE_FIRMWARE}; then
+    if ! wget -q ${RELEASE_DOWNLOAD1}/${REMOTE_FIRMWARE} -o ${REMOTE_FIRMWARE}; then
+      curl -fsSL ${RELEASE_DOWNLOAD1}/${REMOTE_FIRMWARE} -o ${REMOTE_FIRMWARE}
     fi
   fi
 fi
