@@ -75,34 +75,36 @@ TMP_AVAILABLE=$(df -m | grep "/tmp" | awk '{print $4}' | awk 'NR==1' | awk -F. '
 let X=$(grep -n "${REMOTE_FIRMWARE}" /tmp/api_version | tail -1 | cut -d : -f 1)-4
 let CLOUD_FIRMWARE_SIZE=$(sed -n "${X}p" /tmp/api_version | grep -Eo "[0-9]+" | awk '{print ($1)/1048576}' | awk -F. '{print $1}')+1
 if [[ "${TMP_AVAILABLE}" -lt "${CLOUD_FIRMWARE_SIZE}" ]]; then
-  echo "固件tmp空间值[${TMP_AVAILABLE}M],云端固件体积[${CLOUD_FIRMWARE_SIZE}M],空间不足" > /tmp/cloud_version
+  echo "固件tmp空间值[${TMP_AVAILABLE}M],云端固件体积[${CLOUD_FIRMWARE_SIZE}M],空间不足" >> /tmp/AutoUpdate.log
   exit 1
 fi
 
 cd "${DOWNLOAD_PATH}"
 if [[  "$(curl -I -s --connect-timeout 8 google.com -w %{http_code} | tail -n1)" == "301" ]]; then
-  if ! curl -fsSL ${RELEASE_DOWNLOAD1}/${REMOTE_FIRMWARE} -o ${REMOTE_FIRMWARE}; then
-    if ! wget -q ${RELEASE_DOWNLOAD2}/${REMOTE_FIRMWARE} -O ${REMOTE_FIRMWARE}; then
-      curl -fsSL ${RELEASE_DOWNLOAD2}/${REMOTE_FIRMWARE} -o ${REMOTE_FIRMWARE}
+  if ! curl -# -L ${RELEASE_DOWNLOAD1}/${REMOTE_FIRMWARE} -o ${REMOTE_FIRMWARE}; then
+    if ! wget -q --show-progress ${RELEASE_DOWNLOAD1}/${REMOTE_FIRMWARE} -O ${REMOTE_FIRMWARE}; then
+      curl -# -L ${RELEASE_DOWNLOAD2}/${REMOTE_FIRMWARE} -o ${REMOTE_FIRMWARE}
     fi
   fi
 else
-  if ! curl -fsSL ${RELEASE_DOWNLOAD2}/${REMOTE_FIRMWARE} -o ${REMOTE_FIRMWARE}; then
-    if ! wget -q ${RELEASE_DOWNLOAD1}/${REMOTE_FIRMWARE} -o ${REMOTE_FIRMWARE}; then
-      curl -fsSL ${RELEASE_DOWNLOAD1}/${REMOTE_FIRMWARE} -o ${REMOTE_FIRMWARE}
+  if ! curl -# -L ${RELEASE_DOWNLOAD2}/${REMOTE_FIRMWARE} -o ${REMOTE_FIRMWARE}; then
+    if ! wget -q --show-progress ${RELEASE_DOWNLOAD2}/${REMOTE_FIRMWARE} -O ${REMOTE_FIRMWARE}; then
+      curl -# -L ${RELEASE_DOWNLOAD1}/${REMOTE_FIRMWARE} -o ${REMOTE_FIRMWARE}
     fi
   fi
 fi
 
-if [[ $? -ne 0 ]]; then
-  echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 下载云端固件失败,请检查网络再尝试或手动安装固件]" > /tmp/cloud_version
-  exit 0
+find . -maxdepth 1 -type f -size -2M -delete
+
+if [[ ! -f "${REMOTE_FIRMWARE}" ]]; then
+  echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 下载云端固件失败,请检查网络再尝试或手动安装固件]" >> /tmp/AutoUpdate.log
+  exit 1
 fi
 
 LOCAL_MD5256=$(md5sum ${REMOTE_FIRMWARE} |cut -c1-3)$(sha256sum ${REMOTE_FIRMWARE} |cut -c1-3)
 CLOUD__MD5256=$(echo ${REMOTE_FIRMWARE} |grep -Eo "[a-zA-Z0-9]+${FIRMWARE_SUFFIX}" | sed -r "s/(.*)${FIRMWARE_SUFFIX}/\1/")
 if [[ ! "${CLOUD__MD5256}" == "${LOCAL_MD5256}" ]]; then
-  echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") MD5对比失败,固件可能在下载时损坏,请检查网络后重试!]" > /tmp/cloud_version
+  echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") MD5对比失败,固件可能在下载时损坏,请检查网络后重试!]" >> /tmp/AutoUpdate.log
   exit 0
 fi
 
