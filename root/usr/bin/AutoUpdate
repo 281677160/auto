@@ -6,6 +6,8 @@
 
 function Remote_detection() {
 rm -rf /tmp/*_version
+rm -rf /tmp/autoupdate.log
+rm -rf /tmp/AutoUpdate.log
 
 if [[ -f "/etc/openwrt_update" ]]; then
   source /etc/openwrt_update
