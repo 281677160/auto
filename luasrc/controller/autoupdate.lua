@@ -1,4 +1,5 @@
-module("luci.controller.autoupdate", package.seeall)
+-- 关键模块声明 (必须放在文件第一行)
+module("luci.controller.autoupdate", package.seeall)  -- 注意模块名是 autoupdate
 
 function index()
     entry({"admin", "system", "autoupdate"}, cbi("autoupdate"), _("AutoUpdate"), 60)
@@ -7,45 +8,64 @@ function index()
     entry({"admin", "system", "autoupdate", "do_upgrade"}, call("action_upgrade"), nil).leaf = true
 end
 
+-- 以下是你的 action_upgrade 函数
 function action_upgrade()
-    os.execute("rm -f /tmp/compare_version 2>/dev/null")
-    os.execute("tee /tmp/autoupdate.log 2>/dev/null")
-    -- 定义通用文件检查函数:ml-citation{ref="6,8" data="citationList"}
-    local function check_version_file()
-        local ver_file = io.open("/tmp/compare_version", "r")
-        if ver_file then
-            local content = ver_file:read("*l") or ""
-            ver_file:close()
-            return content:gsub("%s+", "") == "no_update"
-        end
-        return false
+    luci.http.prepare_content("application/json")
+    
+    -- 阶段1：执行预检查
+    local check_code = luci.sys.call("AutoUpdate > /tmp/update_check.log 2>&1")
+    if check_code ~= 0 then
+        return luci.http.write_json({
+            success = false,
+            message = "Check update failed",
+            log = io.popen("cat /tmp/update_check.log"):read("*a")
+        })
     end
 
-    -- 执行基础检查命令
-    local check_result = luci.sys.call("AutoUpdate >> /tmp/autoupdate.log 2>&1")
-    if check_result ~= 0 then
-        -- 新增版本文件判断:ml-citation{ref="2,6" data="citationList"}
-        if check_version_file() then
-            luci.http.write_json({ success = false, message = "云端没有最新固件,无需更新" })
-        else
-            luci.http.write_json({ success = false, message = "脚本运行失败,请看页面显示信息" })
-        end
-        return
+    -- 阶段2：处理升级确认流程
+    local confirm = luci.http.formvalue("confirm")
+    local cmd = luci.http.formvalue("cmd")
+    
+    -- 如果已经确认要执行命令
+    if confirm == "1" and cmd then
+        local exec_code = luci.sys.call(cmd .. " > /tmp/autoupdate_confirm.log 2>&1")
+        return luci.http.write_json({
+            success = (exec_code == 0),
+            message = exec_code == 0 and "Upgrade completed" or "Confirm execution failed",
+            log = io.popen("cat /tmp/autoupdate_confirm.log"):read("*a")
+        })
     end
 
-    -- 执行升级命令
-    local upgrade_resul = luci.sys.call("AutoUpdate -u >> /tmp/autoupdate.log 2>&1")
-    if upgrade_resul ~= 0 then
-        -- 新增升级失败时的文件判断:ml-citation{ref="4,6" data="citationList"}
-        if check_version_file() then
-            luci.http.write_json({ success = false, message = "云端没有最新固件,无需更新" })
-        else
-            luci.http.write_json({ success = false, message = "脚本运行失败,请看页面显示信息" })
-        end
-        return
+    -- 阶段3：执行升级操作
+    local upgrade_code = luci.sys.call("AutoUpdate -u > /tmp/autoupdate.log 2>&1")
+    
+    -- 成功直接返回
+    if upgrade_code == 0 then
+        return luci.http.write_json({
+            success = true,
+            message = "Upgrade started",
+            log = io.popen("cat /tmp/autoupdate.log"):read("*a")
+        })
     end
 
-    if upgrade_result == 0 then
-        luci.http.prepare_content("application/json")
-        luci.http.write_json({success=true, message="Upgrade started"})
+    -- 失败时解析日志寻找需要确认的命令
+    local log_content = io.popen("cat /tmp/autoupdate.log"):read("*a")
+    local cmd_match = log_content:match("UPGRADE_COMMAND: (.+%.sh)")  -- 假设日志中包含 UPGRADE_COMMAND: /path/command.sh
+
+    -- 如果找到需要确认的命令
+    if cmd_match then
+        return luci.http.write_json({
+            need_confirm = true,
+            command = cmd_match,
+            message = "Require confirmation to execute upgrade command",
+            log = log_content
+        })
     end
+
+    -- 常规错误返回
+    return luci.http.write_json({
+        success = false,
+        message = "Upgrade failed",
+        log = log_content
+    })
+end
