@@ -1,0 +1,21 @@
+/* 日志容器样式 */
+#log-container {
+    background: #f8f9fa;
+    border-radius: 4px;
+    padding: 12px;
+    margin-top: 8px;
+    font-family: monospace;
+    font-size: 13px;
+}
+
+/* 状态消息动画 */
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+#status-msg[data-status="processing"] {
+    animation: pulse 1.5s infinite;
+    color: #0d6efd;
+}
