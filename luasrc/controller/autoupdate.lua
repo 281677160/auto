@@ -26,7 +26,7 @@ function action_upgrade()
     if check_result ~= 0 then
         -- 新增版本文件判断:ml-citation{ref="2,6" data="citationList"}
         if check_version_file() then
-            luci.http.write_json({ success = false, message = "There is no need to update it" })
+            luci.http.write_json({ success = false, message = "云端没有最新固件,无需更新" })
         else
             luci.http.write_json({ success = false, message = "Check update failed" })
         end
@@ -38,7 +38,7 @@ function action_upgrade()
     if upgrade_result ~= 0 then
         -- 新增升级失败时的文件判断:ml-citation{ref="4,6" data="citationList"}
         if check_version_file() then
-            luci.http.write_json({ success = false, message = "There is no need to update it." })
+            luci.http.write_json({ success = false, message = "云端没有最新固件,无需更新" })
         else
             luci.http.write_json({ success = false, message = "Check update failed" })
         end
