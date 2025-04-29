@@ -121,12 +121,12 @@ clear
 echo
 echo
 echo
-echo -e "\033[36m 当前使用固件\033[0m：\033[32m${FIRMWARE_VERSION}\033[0m"
-echo -e "\033[36m 当前固件内核\033[0m：\033[32m${KERNEL_MODE} - ${LUCI_EDITION}\033[0m"
-echo -e "\033[36m 当前固件格式\033[0m：\033[32m${BOOT_TYPE}${FIRMWARE_SUFFIX}\033[0m"
-echo -e "\033[36m 当前设备型号\033[0m：\033[32m${DEVICE_MODEL}\033[0m"
+echo -e "\033[36m当前使用固件\033[0m：\033[32m${FIRMWARE_VERSION}\033[0m"
+echo -e "\033[36m当前固件内核\033[0m：\033[32m${KERNEL_MODE} - ${LUCI_EDITION}\033[0m"
+echo -e "\033[36m当前固件格式\033[0m：\033[32m${BOOT_TYPE}${FIRMWARE_SUFFIX}\033[0m"
+echo -e "\033[36m当前设备型号\033[0m：\033[32m${DEVICE_MODEL}\033[0m"
 echo
-TIME y " 以下为可选升级固件："
+TIME y "以下为可选升级固件："
 TIME g " ******************************************************************" 
 echo
 cat /tmp/FIRMWARE_BANBEN |awk '$0=NR"、"$0'|awk '{print "  " $0}'
@@ -150,7 +150,9 @@ while :; do
       exit 0
   elif [[ -z "${YMXZ}" ]]; then
       TIME r "敬告,输入不能为空"
-  elif [[ "$YMXZ" =~ ^[1-9]+$ ]]; then
+  elif [[ "${YMXZ}" == "0" ]]; then
+      TIME r "敬告,请输入正确数值(1~${XYZDSZ})" >&2
+  elif [[ "$YMXZ" =~ ^[0-9]+$ ]]; then
     if [[ "${YMXZ}" -le "${XYZDSZ}" ]]; then
       REMOTE_FIRMWARE=$(cat /tmp/FIRMWARE_BANBEN | awk ''NR==${YMXZ}'')
       TIME g "您选择了安装 ${REMOTE_FIRMWARE} 固件"
