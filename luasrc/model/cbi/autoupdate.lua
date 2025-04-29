@@ -37,12 +37,13 @@ local function get_sys_info()
 
     -- 清理旧文件
     os.execute("rm -f /tmp/compare_version 2>/dev/null")
+    os.execute("tee /tmp/autoupdate.log 2>/dev/null")
     
     -- 确保脚本可执行
     os.execute("chmod +x /usr/bin/AutoUpdate")
     
     -- 执行检查更新脚本并捕获返回值
-    local check_result = luci.sys.call("AutoUpdate > /dev/null 2>&1")
+    local check_result = luci.sys.call("AutoUpdate >> /tmp/autoupdate.log 2>&1")
     
     -- 新增文件检查逻辑（优先级高于返回码）
     local ver_file = io.open("/tmp/compare_version", "r")
@@ -92,7 +93,7 @@ button_upgrade_firmware.template = "autoupdate/upgrade_button"
 
 function button_upgrade_firmware.write(self, section)
     -- 执行升级命令
-    local upgrade_result = luci.sys.call("AutoUpdate -u >> /tmp/autoupdate.log 2>&1 &")
+    local upgrade_result = luci.sys.call("AutoUpdate -u >> /tmp/autoupdate.log 2>&1")
     
     if upgrade_result == 0 then
         luci.http.write("<script>alert('"..translate("Upgrade started successfully! Router will reboot soon.").."')</script>")
