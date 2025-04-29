@@ -6,13 +6,12 @@
 
 function Remote_detection() {
 rm -rf /tmp/*_version
-rm -rf /tmp/autoupdate.log
-rm -rf /tmp/AutoUpdate.log
 
 if [[ -f "/etc/openwrt_update" ]]; then
   source /etc/openwrt_update
 else
   echo "缺少openwrt_update文件" > /tmp/cloud_version
+  echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 缺少openwrt_update文件]"
   exit 1
 fi
 
