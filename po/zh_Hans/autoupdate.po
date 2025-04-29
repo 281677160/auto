@@ -1,12 +1,32 @@
 msgid ""
 msgstr ""
-"Content-Type: text/plain; charset=UTF-8\n"
-"Project-Id-Version: PACKAGE VERSION\n"
-"Last-Translator: Automatically generated\n"
-"Language-Team: none\n"
+"Project-Id-Version: OpenWrt AutoUpdate 1.2\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-04-29 15:00+0800\n"
+"PO-Revision-Date: 2025-04-29 15:30+0800\n"
+"Last-Translator: User <user@example.com>\n"
+"Language-Team: Chinese\n"
 "Language: zh_Hans\n"
 "MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#: luci-controller-autoupdate.lua:15
+msgid "AutoUpdate"
+msgstr "自动更新"
+
+#: luci-controller-autoupdate.lua:18
+msgid "Check update failed"
+msgstr "更新检查失败"
+
+#: luci-controller-autoupdate.lua:21
+msgid "There is no need to update it"
+msgstr "当前无需更新"
+
+#: luci-controller-autoupdate.lua:24
+msgid "Upgrade started"
+msgstr "升级程序已启动"
 
 msgid "AutoUpdate"
 msgstr "在线更新"
