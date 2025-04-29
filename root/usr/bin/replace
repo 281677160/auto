@@ -29,8 +29,7 @@ rm -rf /tmp/*_version
 if [[ -f "/etc/openwrt_update" ]]; then
   source /etc/openwrt_update
 else
-  echo "缺少openwrt_update文件" > /tmp/cloud_version
-  echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 缺少openwrt_update文件]"
+  TIME r "[$(date "+%Y年%m月%d日%H时%M分%S秒") 缺少openwrt_update文件]"
   exit 1
 fi
 
@@ -66,16 +65,16 @@ done
 }
 
 function Remote_detection() {
-echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 正在获取API数据...]"
+TIME y "[$(date "+%Y年%m月%d日%H时%M分%S秒") 正在获取API数据...]"
 if ! wget -q --timeout=40 -t 1 "${RELEASE_DOWNLOAD1}/zzz_api" -O /tmp/api_version; then
   curl -# -L --max-time 40 "${RELEASE_DOWNLOAD2}/zzz_api" -o /tmp/api_version
 fi
 
 if [[ -z "$(grep -E "assets" /tmp/api_version)" ]]; then
-  echo "获取API数据失败,Github地址不正确?，或此地址没云端存在，或您的仓库为私库?" > /tmp/cloud_version
+  TIME r "[$(date "+%Y年%m月%d日%H时%M分%S秒") 获取API数据失败,Github地址不正确?，或此地址没云端存在，或您的仓库为私库?]"
   exit 1
 else
-  echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 获取API数据成功!]"
+  TIME g "[$(date "+%Y年%m月%d日%H时%M分%S秒") 获取API数据成功!]"
 fi
 }
 
@@ -92,6 +91,7 @@ else
   BOOT_TYPE=sysupgrade
 fi
 
+TIME y "[$(date "+%Y年%m月%d日%H时%M分%S秒") 正在获取固件数据...]"
 KERNEL_MODE=$(uname -rs | cut -d ' ' -f2)
 LOCAL_VERSION=$(echo "${FIRMWARE_VERSION}" | awk -F'-' '{print $NF}')
 REMOTE_FIRMWARE=$(grep -Eo "${LUCI_EDITION}-${SOURCE}-${DEVICE_MODEL}-[0-9]+-${BOOT_TYPE}-[a-zA-Z0-9]+${FIRMWARE_SUFFIX}" /tmp/api_version | awk 'END {print}')
@@ -118,6 +118,8 @@ done
 if [[ ! -s "/tmp/FIRMWARE_BANBEN" ]]; then
   TIME r "没有获取到任何数据"
   exit 1
+else
+  TIME g "[$(date "+%Y年%m月%d日%H时%M分%S秒") 获取固件数据成功!]"
 fi
 
 clear
@@ -166,22 +168,52 @@ while :; do
       TIME r "敬告,请输入正确值"
   fi
 done
+
+if [[ -n "$(echo "${REMOTE_FIRMWARE}" |grep -E "${y}")" ]]; then
+  echo
+  TIME y "此固件跟您现在所用的固件为同类型固件"
+  TIME g "可以选择保留配置或不保留配置升级"
+  echo
+  xuzqxz="输入[Y/y]为保留配置，输入[N/n]为不保留配置"
+  while :; do
+  read -p " ${xuzqxz}： " Bendi_Wsl
+  case ${Bendi_Wsl} in
+  [Yy])
+    upgrade_tions="1"
+    tongzhi="保留配置"
+  break
+  ;;
+  [Nn])
+    upgrade_tions="0"
+    tongzhi="不保留配置"
+  break
+  ;;
+  *)
+    xuzqxz="请输入正确选[Y/n]"
+  ;;
+  esac
+  done
+else
+   upgrade_tions="0"
+   tongzhi="不保留配置"
+fi
 }
 
 function Remote_upgrade() {
+TIME y "[$(date "+%Y年%m月%d日%H时%M分%S秒") 检查设备空间]"
 [ ! -d "${DOWNLOAD_PATH}" ] && mkdir -p ${DOWNLOAD_PATH} || rm -rf $DOWNLOAD_PATH/*
 TMP_AVAILABLE=$(df -m | grep "/tmp" | awk '{print $4}' | awk 'NR==1' | awk -F. '{print $1}')
 let X=$(grep -n "${REMOTE_FIRMWARE}" /tmp/api_version | tail -1 | cut -d : -f 1)-4
 let CLOUD_FIRMWARE_SIZE=$(sed -n "${X}p" /tmp/api_version | grep -Eo "[0-9]+" | awk '{print ($1)/1048576}' | awk -F. '{print $1}')+1
 if [[ "${TMP_AVAILABLE}" -lt "${CLOUD_FIRMWARE_SIZE}" ]]; then
-  echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 固件tmp空间值[${TMP_AVAILABLE}M],云端固件体积[${CLOUD_FIRMWARE_SIZE}M],空间不足]"
+  TIME r "[$(date "+%Y年%m月%d日%H时%M分%S秒") 设备tmp空间值[${TMP_AVAILABLE}M],云端固件体积[${CLOUD_FIRMWARE_SIZE}M],空间不足]"
   exit 1
 else
-  echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 固件tmp空间值[${TMP_Available}M],云端固件体积[${CLOUD_Firmware_Size}M]]"
+  TIME g "[$(date "+%Y年%m月%d日%H时%M分%S秒") 设备tmp空间值[${TMP_Available}M],云端固件体积[${CLOUD_Firmware_Size}M],可下载固件升级]"
 fi
 
 cd "${DOWNLOAD_PATH}"
-echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 开始下载云端固件]"
+TIME y "[$(date "+%Y年%m月%d日%H时%M分%S秒") 开始下载云端固件...]"
 if [[  "$(curl -I -s --connect-timeout 8 google.com -w %{http_code} | tail -n1)" == "301" ]]; then
   if ! wget -q --show-progress ${RELEASE_DOWNLOAD1}/${REMOTE_FIRMWARE} -O ${REMOTE_FIRMWARE}; then
     if ! curl -# -L ${RELEASE_DOWNLOAD1}/${REMOTE_FIRMWARE} -o ${REMOTE_FIRMWARE}; then
@@ -199,44 +231,58 @@ fi
 find . -maxdepth 1 -type f -size -2097152c -exec rm -f {} \;
 
 if [[ ! -f "${REMOTE_FIRMWARE}" ]]; then
-  echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 云端固件下载失败]"
+  TIME r "[$(date "+%Y年%m月%d日%H时%M分%S秒") 云端固件下载失败]"
   exit 1
 else
-  echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 云端固件下载成功]"
+  TIME g "[$(date "+%Y年%m月%d日%H时%M分%S秒") 云端固件下载成功]"
 fi
 
+TIME y "[$(date "+%Y年%m月%d日%H时%M分%S秒") 对比固件MD5值]"
 LOCAL_MD5256=$(md5sum ${REMOTE_FIRMWARE} |cut -c1-3)$(sha256sum ${REMOTE_FIRMWARE} |cut -c1-3)
 CLOUD__MD5256=$(echo "${REMOTE_FIRMWARE}" |sed "s/.*${BOOT_TYPE}//g" | sed -r "s/-(.*)${FIRMWARE_SUFFIX}/\1/")
 if [[ ! "${CLOUD__MD5256}" == "${LOCAL_MD5256}" ]]; then
-  echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") MD5对比失败,固件可能在下载时损坏,请检查网络后重试!]"
+  TIME r "[$(date "+%Y年%m月%d日%H时%M分%S秒") MD5对比失败,固件可能在下载时损坏,请检查网络后重试!]"
   exit 1
 else
-  echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") MD5对比成功]"
+  TIME g "[$(date "+%Y年%m月%d日%H时%M分%S秒") MD5对比成功]"
 fi
 
-echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 正在执行更新固件前的备份]"
 chmod 755 "${REMOTE_FIRMWARE}"
 if [[ -n "$(opkg list | awk '{print $1}' | grep -E 'gzip')" ]]; then
   opkg remove gzip > /dev/null 2>&1
 fi
 
-if [[ -f "/etc/deletefile" ]]; then
-  source /etc/deletefile
+if [[ "${upgrade_tions}" == "1" ]]; then
+  TIME y "[$(date "+%Y年%m月%d日%H时%M分%S秒") 正在执行更新固件前的备份]"
+  if [[ -f "/etc/deletefile" ]]; then
+    source /etc/deletefile
+  fi
+
+  mv /etc/config/luci /tmp/luciaaa
+  echo "*/5 * * * * sleep 240; sh /etc/networkdetection > /dev/null 2>&1" >> /etc/crontabs/root
+  /etc/init.d/cron restart
+  rm -rf /mnt/*upback.tar.gz && sysupgrade -b /mnt/upback.tar.gz
+  mv /tmp/luciaaa /etc/config/luci
+  if [[ -n "$(ls -1 /mnt | grep -E 'upback.tar.gz')" ]]; then
+    UPGRADE_COMMAND='sysupgrade -F -f /mnt/upback.tar.gz'
+  else
+    UPGRADE_COMMAND='sysupgrade -F -q'
+  fi
+else
+  UPGRADE_COMMAND='sysupgrade -F -n'  
 fi
 
-mv /etc/config/luci /tmp/luciaaa
-echo "*/5 * * * * sleep 240; sh /etc/networkdetection > /dev/null 2>&1" >> /etc/crontabs/root
-/etc/init.d/cron restart
-rm -rf /mnt/*upback.tar.gz && sysupgrade -b /mnt/upback.tar.gz
-mv /tmp/luciaaa /etc/config/luci
-if [[ -n "$(ls -1 /mnt | grep -E 'upback.tar.gz')" ]]; then
-  UPGRADE_COMMAND='sysupgrade -F -f /mnt/upback.tar.gz'
-else
-  UPGRADE_COMMAND='sysupgrade -F -q'
-fi
-echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 升级固件中，请勿断开路由器电源，END]"
+TIME g "[倒计10秒后,执行[${tongzhi}]更新,更新期间请不要断开电源或重启设备 ...]"
+sleep 1
+seconds=9
+while [ $seconds -gt 0 ];do
+  echo -n " ${seconds}"
+  sleep 1
+  seconds=$((${seconds} - 1))
+  echo -ne "\r   \r"
+done
+
 ${UPGRADE_COMMAND} ${REMOTE_FIRMWARE}
-exit 0
 }
 
 case "$1" in
