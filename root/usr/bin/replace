@@ -39,11 +39,7 @@ read -p "请选择：" SNKC
   case ${SNKC} in
   [Yy])
       sed -i "s?${GITHUB_LINK}?${gith_url}?g" /etc/openwrt_update
-      echo "1"
       source /etc/openwrt_update
-      echo "2"
-      echo "" > /tmp/FIRMWARE_BANBEN && chmod +x /tmp/FIRMWARE_BANBEN
-      echo "3"
       break
   ;;
   [Qq])
@@ -63,7 +59,8 @@ done
 }
 
 function Remote_detection() {
-if ! wget --timeout=40 -t 1 "${RELEASE_DOWNLOAD1}/zzz_api" -O /tmp/api_version; then
+echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 正在获取API数据...]"
+if ! wget -q --timeout=40 -t 1 "${RELEASE_DOWNLOAD1}/zzz_api" -O /tmp/api_version; then
   curl -# -L --max-time 40 "${RELEASE_DOWNLOAD2}/zzz_api" -o /tmp/api_version
 fi
 
@@ -88,11 +85,18 @@ else
   BOOT_TYPE=sysupgrade
 fi
 
+KERNEL_MODE=$(uname -rs | cut -d ' ' -f2)
 LOCAL_VERSION=$(echo "${FIRMWARE_VERSION}" | awk -F'-' '{print $NF}')
 REMOTE_FIRMWARE=$(grep -Eo "${LUCI_EDITION}-${SOURCE}-${DEVICE_MODEL}-[0-9]+-${BOOT_TYPE}-[a-zA-Z0-9]+${FIRMWARE_SUFFIX}" /tmp/api_version | awk 'END {print}')
 CLOUD_VERSION=$(echo "${REMOTE_FIRMWARE}" |sed "s/.*${DEVICE_MODEL}//g" |sed "s/${BOOT_TYPE}.*//g" |grep -Eo [0-9]+)
 y="${LUCI_EDITION}-${SOURCE}"
-[[ -n "${REMOTE_FIRMWARE}" ]] && echo "${REMOTE_FIRMWARE}" >> /tmp/FIRMWARE_BANBEN
+if [[ -n "${REMOTE_FIRMWARE}" ]]; then
+  echo "${REMOTE_FIRMWARE}" >> /tmp/FIRMWARE_BANBEN
+else
+  echo "" > /tmp/FIRMWARE_BANBEN
+  sed -i '/^$/d' /tmp/FIRMWARE_BANBEN
+fi
+chmod +x /tmp/FIRMWARE_BANBEN
 
 for x in "${R1}" "${R2}" "${R3}" "${R4}" "${R5}" "${R6}" "${R7}" "${R8}" "${R9}" "${R10}" "${R11}" "${R12}" "${R13}" "${R14}" "${R15}" "${R16}" "${R17}" "${R18}" "${R19}" "${R20}" \
 "${R21}" "${R22}" "${R23}" "${R24}" "${R25}" "${R26}" "${R27}" "${R28}" "${R29}" "${R30}" "${R31}" "${R32}" "${R33}" "${R34}" "${R35}" "${R36}" "${R37}" "${R38}" "${R39}" "${R40}" \
@@ -107,13 +111,23 @@ done
 if [[ ! -s "/tmp/FIRMWARE_BANBEN" ]]; then
   TIME r "没有获取到任何数据"
   exit 1
-else
-  TIME y " 以下为可选升级固件："
-  TIME g " ******************************************************************" 
-  cat /tmp/FIRMWARE_BANBEN |awk '$0=NR"、"$0'|awk '{print "  " $0}'
-  echo
-  TIME g " ******************************************************************" 
 fi
+
+clear
+echo
+echo
+echo
+echo -e "${Green} 当前使用固件${Font}：${Blue}${FIRMWARE_VERSION}${Font}"
+echo -e "${Green} 当前固件内核${Font}：${Blue}${KERNEL_MODE} - ${LUCI_EDITION}${Font}"
+echo -e "${Green} 当前固件格式${Font}：${Blue}${BOOT_TYPE}${FIRMWARE_SUFFIX}${Font}"
+echo -e "${Green} 当前设备型号${Font}：${Blue}${DEVICE_MODEL}${Font}"
+echo
+echo
+TIME y " 以下为可选升级固件："
+TIME g " ******************************************************************" 
+echo
+cat /tmp/FIRMWARE_BANBEN |awk '$0=NR"、"$0'|awk '{print "  " $0}'
+TIME g " ******************************************************************" 
 
 if [[ -n "${CLOUD_VERSION}" ]]; then
   if [[ "${LOCAL_VERSION}" -eq "${CLOUD_VERSION}" ]]; then
