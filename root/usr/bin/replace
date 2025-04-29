@@ -131,6 +131,7 @@ echo
 TIME y " 以下为可选升级固件："
 TIME g " ******************************************************************" 
 echo
+echo
 cat /tmp/FIRMWARE_BANBEN |awk '$0=NR"、"$0'|awk '{print "  " $0}'
 TIME g " ******************************************************************" 
 
@@ -152,7 +153,7 @@ while :; do
       exit 0
   elif [[ -z "${YMXZ}" ]]; then
       TIME r "敬告,输入不能为空"
-  elif [[ "$YMXZ" =~ ^[0-9]+$ ]]; then
+  elif [[ "$YMXZ" =~ ^[1-9]+$ ]]; then
     if [[ "${YMXZ}" -le "${XYZDSZ}" ]]; then
       REMOTE_FIRMWARE=$(cat /tmp/FIRMWARE_BANBEN | awk ''NR==${YMXZ}'')
       TIME g "您选择了安装 ${REMOTE_FIRMWARE} 固件"
