@@ -39,8 +39,11 @@ read -p "请选择：" SNKC
   case ${SNKC} in
   [Yy])
       sed -i "s?${GITHUB_LINK}?${gith_url}?g" /etc/openwrt_update
+      echo "1"
       source /etc/openwrt_update
+      echo "2"
       tee /tmp/FIRMWARE_BANBEN
+      echo "3"
       break
   ;;
   [Qq])
@@ -49,7 +52,7 @@ read -p "请选择：" SNKC
       break
   ;;
   [Nn])
-      exit 1
+      exit 0
       break
   ;;
   *)
