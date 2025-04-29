@@ -23,6 +23,7 @@ echo -e "\e[36m\e[0m${Color}${2}\e[0m"
 }
 
 function Remote_githuburl() {
+clear
 rm -rf /tmp/*_version
 
 if [[ -f "/etc/openwrt_update" ]]; then
@@ -130,7 +131,6 @@ echo -e "${Green} 当前设备型号${Font}：${Blue}${DEVICE_MODEL}${Font}"
 echo
 TIME y " 以下为可选升级固件："
 TIME g " ******************************************************************" 
-echo
 echo
 cat /tmp/FIRMWARE_BANBEN |awk '$0=NR"、"$0'|awk '{print "  " $0}'
 TIME g " ******************************************************************" 
