@@ -50,7 +50,7 @@ function action_upgrade()
 
     -- 失败时解析日志寻找需要确认的命令
     local log_content = io.popen("cat /tmp/autoupdate.log"):read("*a")
-    local cmd_match = log_content:match("UPGRADE_COMMAND: (.+%.sh)")  -- 假设日志中包含 UPGRADE_COMMAND: /path/command.sh
+    local cmd_match = log_content:match("UPGRADE_COMMAND (.+%.sh)")  -- 假设日志中包含 UPGRADE_COMMAND: /path/command.sh
 
     -- 如果找到需要确认的命令
     if cmd_match then
