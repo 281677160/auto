@@ -8,6 +8,8 @@ function index()
 end
 
 function action_upgrade()
+    os.execute("rm -f /tmp/compare_version 2>/dev/null")
+    os.execute("tee /tmp/autoupdate.log 2>/dev/null")
     -- 定义通用文件检查函数:ml-citation{ref="6,8" data="citationList"}
     local function check_version_file()
         local ver_file = io.open("/tmp/compare_version", "r")
@@ -20,7 +22,7 @@ function action_upgrade()
     end
 
     -- 执行基础检查命令
-    local check_result = luci.sys.call("AutoUpdate >> /tmp/autoupdate.log 2>&1 &")
+    local check_result = luci.sys.call("AutoUpdate >> /tmp/autoupdate.log 2>&1")
     if check_result ~= 0 then
         -- 新增版本文件判断:ml-citation{ref="2,6" data="citationList"}
         if check_version_file() then
@@ -32,7 +34,7 @@ function action_upgrade()
     end
 
     -- 执行升级命令
-    local upgrade_result = luci.sys.call("AutoUpdate -u >> /tmp/autoupdate.log 2>&1 &")
+    local upgrade_result = luci.sys.call("AutoUpdate -u >> /tmp/autoupdate.log 2>&1")
     if upgrade_result ~= 0 then
         -- 新增升级失败时的文件判断:ml-citation{ref="4,6" data="citationList"}
         if check_version_file() then
@@ -46,4 +48,3 @@ function action_upgrade()
     -- 原有成功响应保持不变
     luci.http.write_json({ success = true, message = "Upgrade started" })
 end
-
