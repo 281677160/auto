@@ -12,22 +12,6 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
-#: luci-controller-autoupdate.lua:15
-msgid "AutoUpdate"
-msgstr "自动更新"
-
-#: luci-controller-autoupdate.lua:18
-msgid "Check update failed"
-msgstr "更新检查失败"
-
-#: luci-controller-autoupdate.lua:21
-msgid "There is no need to update it"
-msgstr "当前无需更新"
-
-#: luci-controller-autoupdate.lua:24
-msgid "Upgrade started"
-msgstr "升级程序已启动"
-
 msgid "AutoUpdate"
 msgstr "在线更新"
 
