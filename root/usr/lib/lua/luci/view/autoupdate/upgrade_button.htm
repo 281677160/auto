@@ -1,27 +1,83 @@
 <%+cbi/valueheader%>
 <div class="cbi-value-field">
-    <input class="cbi-button cbi-button-apply" type="button" value="<%:Start Upgrade%>" 
-        onclick="confirmUpgrade()" />
+    <input id="upgrade-btn" class="cbi-button cbi-button-apply" type="button" 
+           value="<%:Start Upgrade%>" onclick="startUpgradeFlow()" />
+    <div id="status-msg" style="margin-top:8px; display:none;"></div>
+    <pre id="log-container" style="display:none; max-height:200px; overflow:auto; border:1px solid #ddd; padding:8px;"></pre>
 </div>
+
 <script type="text/javascript">
-function confirmUpgrade() {
-    if (confirm('<%:Are you sure you want to upgrade the firmware?%>')) {
-        var xhr = new XMLHttpRequest();
-        xhr.open('POST', '<%=url("admin/system/autoupdate/do_upgrade")%>', true);
-        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+async function startUpgradeFlow() {
+    const btn = document.getElementById('upgrade-btn');
+    const statusDiv = document.getElementById('status-msg');
+    const logPre = document.getElementById('log-container');
+    
+    btn.disabled = true;
+    statusDiv.style.display = 'block';
+    
+    try {
+        // 阶段1：发起升级请求
+        statusDiv.innerHTML = '<%:Checking system status...%> 🕒';
+        let response = await fetch('<%=url("admin/system/autoupdate/do_upgrade")%>', {
+            method: 'POST'
+        });
         
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState === 4) {
-                var response = JSON.parse(xhr.responseText);
-                if (response.success) {
-                    alert('<%:Upgrade started successfully! Router will reboot soon.%>');
-                } else {
-                    alert('<%:Upgrade failed!%> ' + response.message);
-                }
+        // 阶段2：处理响应
+        const result = await response.json();
+        
+        if (result.need_confirm) {
+            // 需要二次确认
+            const confirmCmd = confirm(
+                `${result.message}\n\n` +
+                `<%:Dangerous command:%>\n${result.command}\n\n` +
+                `<%:Log snippet:%>\n${result.log.split('\n').slice(-3).join('\n')}`
+            );
+            
+            if (confirmCmd) {
+                statusDiv.innerHTML = '<%:Executing confirmed command...%> 🔧';
+                const confirmResponse = await fetch('<%=url("admin/system/autoupdate/do_upgrade")%>', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `confirm=1&cmd=${encodeURIComponent(result.command)}`
+                });
+                
+                const confirmResult = await confirmResponse.json();
+                showFinalResult(confirmResult);
             }
-        };
+        } else {
+            // 直接显示最终结果
+            showFinalResult(result);
+        }
         
-        xhr.send();
+    } catch (error) {
+        statusDiv.innerHTML = `<span style="color:red"><%:Network error:%> ${error}</span>`;
+    } finally {
+        btn.disabled = false;
+    }
+
+    function showFinalResult(data) {
+        if (data.success) {
+            statusDiv.innerHTML = '<span style="color:green">✔️ <%:Upgrade started!%></span>';
+            logPre.style.display = 'block';
+            logPre.textContent = data.log || '<%:No logs available%>';
+            
+            // 自动跳转倒计时
+            let count = 10;
+            const timer = setInterval(() => {
+                statusDiv.innerHTML = `<span style="color:green">✔️ <%:Upgrade started! Rebooting in ${count--}s...%></span>`;
+                if (count < 0) {
+                    clearInterval(timer);
+                    window.location.reload();
+                }
+            }, 1000);
+            
+        } else {
+            statusDiv.innerHTML = `<span style="color:red">❌ <%:Operation failed:%> ${data.message}</span>`;
+            logPre.style.display = 'block';
+            logPre.textContent = data.log || '<%:No failure logs%>';
+        }
     }
 }
 </script>
