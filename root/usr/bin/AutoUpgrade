@@ -2,7 +2,7 @@
 # https://github.com/Hyy2001X/AutoBuild-Actions
 # AutoBuild Module by Hyy2001
 # AutoUpdate for Openwrt
-# /usr/bin/AutoUpdate
+# /usr/bin/AutoUpgrade
 Green="\033[32m"
 Red="\033[31m"
 Yellow="\033[33m"
