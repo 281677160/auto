@@ -1,5 +1,4 @@
--- 关键模块声明 (必须放在文件第一行)
-module("luci.controller.autoupdate", package.seeall)  -- 注意模块名是 autoupdate
+module("luci.controller.autoupdate", package.seeall)
 
 function index()
     entry({"admin", "system", "autoupdate"}, cbi("autoupdate"), _("AutoUpdate"), 60)
@@ -8,7 +7,6 @@ function index()
     entry({"admin", "system", "autoupdate", "do_upgrade"}, call("action_upgrade"), nil).leaf = true
 end
 
--- 以下是你的 action_upgrade 函数
 function action_upgrade()
     luci.http.prepare_content("application/json")
     
@@ -50,7 +48,7 @@ function action_upgrade()
 
     -- 失败时解析日志寻找需要确认的命令
     local log_content = io.popen("cat /tmp/autoupdate.log"):read("*a")
-    local cmd_match = log_content:match("UPGRADE_COMMAND:%s*(.+%.sh)%s*$") 
+    local cmd_match = log_content:match("UPGRADE_COMMAND: (.+%.sh)")  -- 假设日志中包含 UPGRADE_COMMAND: /path/command.sh
 
     -- 如果找到需要确认的命令
     if cmd_match then
