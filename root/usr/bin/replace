@@ -42,7 +42,7 @@ read -p "请选择：" SNKC
       echo "1"
       source /etc/openwrt_update
       echo "2"
-      tee /tmp/FIRMWARE_BANBEN
+      echo "" > /tmp/FIRMWARE_BANBEN && chmod +x /tmp/FIRMWARE_BANBEN
       echo "3"
       break
   ;;
