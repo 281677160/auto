@@ -34,8 +34,8 @@ function action_upgrade()
     end
 
     -- 执行升级命令
-    local upgrade_result = luci.sys.call("AutoUpdate -u >> /tmp/autoupdate.log 2>&1")
-    if upgrade_result ~= 0 then
+    local upgrade_resul = luci.sys.call("AutoUpdate -u >> /tmp/autoupdate.log 2>&1")
+    if upgrade_resul ~= 0 then
         -- 新增升级失败时的文件判断:ml-citation{ref="4,6" data="citationList"}
         if check_version_file() then
             luci.http.write_json({ success = false, message = "云端没有最新固件,无需更新" })
@@ -45,6 +45,7 @@ function action_upgrade()
         return
     end
 
-    -- 原有成功响应保持不变
-    luci.http.write_json({ success = true, message = "Upgrade started" })
-end
+    if upgrade_result == 0 then
+        luci.http.prepare_content("application/json")
+        luci.http.write_json({success=true, message="Upgrade started"})
+    end
