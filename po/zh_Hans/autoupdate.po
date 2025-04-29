@@ -68,6 +68,9 @@ msgstr "云端没最新固件,无需更新"
 msgid "Upgrade started successfully! Router will reboot soon."
 msgstr "开始升级固件,请耐心等待路由器重启"
 
+msgid "Upgrade failed! Check /tmp/autoupdate.log for details."
+msgstr "请在[/tmp/autoupdate.log]查看日志"
+
 msgid "Upgrade failed!"
 msgstr "提示："
 
@@ -81,4 +84,7 @@ msgid "Upgrade started"
 msgstr "开始升级固件"
 
 msgid "There is no need to update it"
+msgstr "云端没有最新固件,无需更新"
+
+msgid "There is no need to update it."
 msgstr "云端没有最新固件,无需更新"
