@@ -159,7 +159,6 @@ while :; do
     if [[ "${YMXZ}" -le "${XYZDSZ}" ]]; then
       REMOTE_FIRMWARE=$(cat /tmp/FIRMWARE_BANBEN | awk ''NR==${YMXZ}'')
       TIME g "您选择了安装 ${REMOTE_FIRMWARE} 固件"
-      sleep 3
       break
     else
       TIME r "敬告,请输入正确数值(1~${XYZDSZ})" >&2
@@ -176,7 +175,7 @@ if [[ -n "$(echo "${REMOTE_FIRMWARE}" |grep -E "${y}")" ]]; then
   echo
   xuzqxz="输入[Y/y]为保留配置，输入[N/n]为不保留配置"
   while :; do
-  read -p " ${xuzqxz}： " Bendi_Wsl
+  read -p "${xuzqxz}：" Bendi_Wsl
   case ${Bendi_Wsl} in
   [Yy])
     upgrade_tions="1"
@@ -196,6 +195,7 @@ if [[ -n "$(echo "${REMOTE_FIRMWARE}" |grep -E "${y}")" ]]; then
 else
    upgrade_tions="0"
    tongzhi="不保留配置"
+   sleep 3
 fi
 }
 
@@ -258,11 +258,10 @@ if [[ "${upgrade_tions}" == "1" ]]; then
     source /etc/deletefile
   fi
 
-  mv /etc/config/luci /tmp/luciaaa
+  rm -rf /etc/config/luci
   echo "*/5 * * * * sleep 240; sh /etc/networkdetection > /dev/null 2>&1" >> /etc/crontabs/root
   /etc/init.d/cron restart
   rm -rf /mnt/*upback.tar.gz && sysupgrade -b /mnt/upback.tar.gz
-  mv /tmp/luciaaa /etc/config/luci
   if [[ -n "$(ls -1 /mnt | grep -E 'upback.tar.gz')" ]]; then
     UPGRADE_COMMAND='sysupgrade -F -f /mnt/upback.tar.gz'
   else
