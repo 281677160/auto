@@ -3,11 +3,6 @@
 # AutoBuild Module by Hyy2001
 # AutoUpdate for Openwrt
 # /usr/bin/AutoUpgrade
-Green="\033[32m"
-Red="\033[31m"
-Yellow="\033[33m"
-Blue="\033[36m"
-Font="\033[0m"
 
 function TIME() {
   case $1 in
@@ -126,10 +121,10 @@ clear
 echo
 echo
 echo
-echo -e "${Green} 当前使用固件${Font}：${Blue}${FIRMWARE_VERSION}${Font}"
-echo -e "${Green} 当前固件内核${Font}：${Blue}${KERNEL_MODE} - ${LUCI_EDITION}${Font}"
-echo -e "${Green} 当前固件格式${Font}：${Blue}${BOOT_TYPE}${FIRMWARE_SUFFIX}${Font}"
-echo -e "${Green} 当前设备型号${Font}：${Blue}${DEVICE_MODEL}${Font}"
+echo -e "\033[36m 当前使用固件\033[0m：\033[32m${FIRMWARE_VERSION}\033[0m"
+echo -e "\033[36m 当前固件内核\033[0m：\033[32m${KERNEL_MODE} - ${LUCI_EDITION}\033[0m"
+echo -e "\033[36m 当前固件格式\033[0m：\033[32m${BOOT_TYPE}${FIRMWARE_SUFFIX}\033[0m"
+echo -e "\033[36m 当前设备型号\033[0m：\033[32m${DEVICE_MODEL}\033[0m"
 echo
 TIME y " 以下为可选升级固件："
 TIME g " ******************************************************************" 
