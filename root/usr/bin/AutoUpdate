@@ -69,16 +69,15 @@ EOF
 if [[ "${LOCAL_VERSION}" -eq "${CLOUD_VERSION}" ]]; then
   echo "${CLOUD_FIRMWARE_VERSION} [已是最新]" > /tmp/cloud_version
   echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 固件已是最新]"
-  echo "no_update" > /tmp/compare_version
-  exit 1
+  [[ Remote == "i" ]] && exit 2 || exit 0
 elif [[ "${LOCAL_VERSION}" -lt "${CLOUD_VERSION}" ]]; then
   echo "${CLOUD_FIRMWARE_VERSION} [有可更新固件]" > /tmp/cloud_version
   echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 有可更新固件]"
+  echo "1" >/tmp/Updatei
 elif [[ "${LOCAL_VERSION}" -gt "${CLOUD_VERSION}" ]]; then
   echo "${CLOUD_FIRMWARE_VERSION} [云端最高版本固件,低于您现在所使用版本,请到云端查看原因]" > /tmp/cloud_version
   echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 云端最高版本固件,低于您现在所使用版本,请到云端查看原因]"
-  echo "no_update" > /tmp/compare_version
-  exit 1
+  [[ Remote == "i" ]] && exit 2 || exit 0
 fi
 }
 
@@ -127,9 +126,11 @@ if [[ ! "${CLOUD__MD5256}" == "${LOCAL_MD5256}" ]]; then
 else
   echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") MD5对比成功]"
 fi
+echo "1" >/tmp/Updatef
 }
 
 function Remote_upgrade() {
+cd "${DOWNLOAD_PATH}"
 echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 正在执行更新固件前的备份]"
 chmod 755 "${REMOTE_FIRMWARE}"
 if [[ -n "$(opkg list | awk '{print $1}' | grep -E 'gzip')" ]]; then
@@ -155,11 +156,18 @@ ${UPGRADE_COMMAND} ${REMOTE_FIRMWARE}
 }
 
 case "$1" in
+  "-k")
+    Remote="i"
+    Remote_detection    
+    Remote_information
+  ;;
   "-i")
+    Remote="i"
     Remote_information
     Remote_download
   ;;
   "-f")
+    Remote="i"
     Remote_upgrade
   ;;
   "-u")
