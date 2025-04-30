@@ -10,9 +10,20 @@ end
 function action_upgrade()
     luci.http.prepare_content("application/json")
     
-    -- 阶段1：执行预检查
+    -- 清理旧的日志文件和标志文件
+    os.execute("rm -f /tmp/update_check.log /tmp/autoupdate.log /tmp/autoupdate_confirm.log /tmp/Updatei /tmp/Updatef")
+    
+    -- 阶段1：执行 AutoUpdate
     local check_code = luci.sys.call("AutoUpdate > /tmp/update_check.log 2>&1")
-    if check_code ~= 0 then
+    if check_code == 0 then
+        -- Check update completed successfully
+        return luci.http.write_json({
+            success = true,
+            message = "Check update completed successfully",
+            log = io.popen("cat /tmp/update_check.log"):read("*a")
+        })
+    elseif check_code == 1 then
+        -- Check update failed
         return luci.http.write_json({
             success = false,
             message = "Check update failed",
@@ -20,50 +31,58 @@ function action_upgrade()
         })
     end
 
-    -- 阶段2：处理升级确认流程
-    local confirm = luci.http.formvalue("confirm")
-    local cmd = luci.http.formvalue("cmd")
-    
-    -- 如果已经确认要执行命令
-    if confirm == "1" and cmd then
-        local exec_code = luci.sys.call(cmd .. " > /tmp/autoupdate_confirm.log 2>&1")
-        return luci.http.write_json({
-            success = (exec_code == 0),
-            message = exec_code == 0 and "Upgrade completed" or "Confirm execution failed",
-            log = io.popen("cat /tmp/autoupdate_confirm.log"):read("*a")
-        })
+    -- 检查是否需要继续运行 AutoUpdate -i
+    if os.execute("test -f /tmp/Updatei") == 0 then
+        -- 阶段2：执行 AutoUpdate -i
+        local status_msg = "正在下载固件中... 🕒"
+        local download_code = luci.sys.call("AutoUpdate -i > /tmp/autoupdate.log 2>&1")
+        if download_code == 0 then
+            -- Download completed
+            return luci.http.write_json({
+                success = true,
+                message = "Download completed",
+                log = io.popen("cat /tmp/autoupdate.log"):read("*a"),
+                status_msg = status_msg
+            })
+        elseif download_code == 1 then
+            -- Download failed
+            return luci.http.write_json({
+                success = false,
+                message = "Download failed",
+                log = io.popen("cat /tmp/autoupdate.log"):read("*a"),
+                status_msg = status_msg
+            })
+        end
     end
 
-    -- 阶段3：执行升级操作
-    local upgrade_code = luci.sys.call("AutoUpdate -i > /tmp/autoupdate.log 2>&1")
-    
-    -- 成功直接返回
-    if upgrade_code == 0 then
-        return luci.http.write_json({
-            success = true,
-            message = "Upgrade started",
-            log = io.popen("cat /tmp/autoupdate.log"):read("*a")
-        })
+    -- 检查是否需要继续运行 AutoUpdate -f
+    if os.execute("test -f /tmp/Updatef") == 0 then
+        -- 阶段3：执行 AutoUpdate -f
+        local status_msg = "正在升级固件中，请勿重启和切断电源... 🕒"
+        local upgrade_code = luci.sys.call("AutoUpdate -f > /tmp/autoupdate.log 2>&1")
+        if upgrade_code == 0 then
+            -- Upgrade completed
+            return luci.http.write_json({
+                success = true,
+                message = "Upgrade completed",
+                log = io.popen("cat /tmp/autoupdate.log"):read("*a"),
+                status_msg = status_msg
+            })
+        elseif upgrade_code == 1 then
+            -- Upgrade failed
+            return luci.http.write_json({
+                success = false,
+                message = "Upgrade failed",
+                log = io.popen("cat /tmp/autoupdate.log"):read("*a"),
+                status_msg = status_msg
+            })
+        end
     end
 
-    -- 失败时解析日志寻找需要确认的命令
-    local log_content = io.popen("cat /tmp/autoupdate.log"):read("*a")
-    local cmd_match = log_content:match("UPGRADE_COMMAND: (.+%.sh)")  -- 假设日志中包含 UPGRADE_COMMAND: /path/command.sh
-
-    -- 如果找到需要确认的命令
-    if cmd_match then
-        return luci.http.write_json({
-            need_confirm = true,
-            command = cmd_match,
-            message = "Require confirmation to execute upgrade command",
-            log = log_content
-        })
-    end
-
-    -- 常规错误返回
+    -- 如果没有标志文件，返回未知错误
     return luci.http.write_json({
         success = false,
-        message = "Upgrade failed",
-        log = log_content
+        message = "Unknown error occurred during upgrade process",
+        log = io.popen("cat /tmp/autoupdate.log"):read("*a")
     })
 end
