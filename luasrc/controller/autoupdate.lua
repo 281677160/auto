@@ -14,7 +14,7 @@ function action_upgrade()
     os.execute("rm -f /tmp/update_check.log /tmp/autoupdate.log /tmp/autoupdate_confirm.log /tmp/Updatei /tmp/Updatef")
     
     -- 阶段1：执行 AutoUpdate
-    local check_code = luci.sys.call("AutoUpdate > /tmp/update_check.log 2>&1")
+    local check_code = luci.sys.call("AutoUpdate -k > /tmp/update_check.log 2>&1")
     if check_code == 2 then
         -- Check update completed successfully
         return luci.http.write_json({
