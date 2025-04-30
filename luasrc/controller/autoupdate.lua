@@ -12,22 +12,23 @@ function action_upgrade()
     
     -- 清理旧的日志文件和标志文件
     os.execute("rm -f /tmp/update_check.log /tmp/autoupdate.log /tmp/autoupdate_confirm.log /tmp/Updatei /tmp/Updatef")
+    os.execute("tee /tmp/autoupdate.log 2>/dev/null")
     
     -- 阶段1：执行 AutoUpdate
-    local check_code = luci.sys.call("AutoUpdate -k > /tmp/update_check.log 2>&1")
+    local check_code = luci.sys.call("AutoUpdate -k >> /tmp/autoupdate.log 2>&1")
     if check_code == 2 then
         -- Check update completed successfully
         return luci.http.write_json({
             success = true,
             message = "Check update completed successfully",
-            log = io.popen("cat /tmp/update_check.log"):read("*a")
+            log = io.popen("cat /tmp/autoupdate.log"):read("*a")
         })
     elseif check_code == 1 then
         -- Check update failed
         return luci.http.write_json({
             success = false,
             message = "Check update failed",
-            log = io.popen("cat /tmp/update_check.log"):read("*a")
+            log = io.popen("cat /tmp/autoupdate.log"):read("*a")
         })
     end
 
@@ -59,7 +60,7 @@ function action_upgrade()
     if os.execute("test -f /tmp/Updatef") == 0 then
         -- 阶段3：执行 AutoUpdate -f
         local status_msg = "正在升级固件中，请勿重启和切断电源... 🕒"
-        local upgrade_code = luci.sys.call("AutoUpdate -f > /tmp/autoupdate.log 2>&1")
+        local upgrade_code = luci.sys.call("AutoUpdate -f >> /tmp/autoupdate.log 2>&1")
         if upgrade_code == 0 then
             -- Upgrade completed
             return luci.http.write_json({
