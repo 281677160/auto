@@ -64,7 +64,10 @@ cat > /tmp/tags_version <<-EOF
 MODEL_TYPE=${BOOT_TYPE}${FIRMWARE_SUFFIX}
 KERNEL_TYPE=${KERNEL_MODE} - ${LUCI_EDITION}
 EQUIPMENT_NAME=${EQUIPMENT_NAME}
+DOWNLOAD_PATH="${DOWNLOAD_PATH}"
+REMOTE_FIRMWARE="${REMOTE_FIRMWARE}"
 EOF
+chmod 755 /tmp/tags_version
 
 if [[ "${LOCAL_VERSION}" -eq "${CLOUD_VERSION}" ]]; then
   echo "${CLOUD_FIRMWARE_VERSION} [已是最新]" > /tmp/cloud_version
@@ -130,6 +133,7 @@ echo "1" >/tmp/Updatef
 }
 
 function Remote_upgrade() {
+source /tmp/tags_version
 cd "${DOWNLOAD_PATH}"
 echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 正在执行更新固件前的备份]"
 chmod 755 "${REMOTE_FIRMWARE}"
