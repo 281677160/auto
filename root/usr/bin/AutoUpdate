@@ -28,6 +28,7 @@ fi
 }
 
 function Remote_information() {
+source /etc/openwrt_update
 if [[ "${TARGET_BOARD}" == "x86" ]]; then
   if [[ -d '/sys/firmware/efi' ]]; then
     BOOT_TYPE=uefi
@@ -81,7 +82,7 @@ elif [[ "${LOCAL_VERSION}" -gt "${CLOUD_VERSION}" ]]; then
 fi
 }
 
-function Remote_upgrade() {
+function Remote_download() {
 [ ! -d "${DOWNLOAD_PATH}" ] && mkdir -p ${DOWNLOAD_PATH} || rm -rf $DOWNLOAD_PATH/*
 TMP_AVAILABLE=$(df -m | grep "/tmp" | awk '{print $4}' | awk 'NR==1' | awk -F. '{print $1}')
 let X=$(grep -n "${REMOTE_FIRMWARE}" /tmp/api_version | tail -1 | cut -d : -f 1)-4
@@ -126,7 +127,9 @@ if [[ ! "${CLOUD__MD5256}" == "${LOCAL_MD5256}" ]]; then
 else
   echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") MD5对比成功]"
 fi
+}
 
+function Remote_upgrade() {
 echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 正在执行更新固件前的备份]"
 chmod 755 "${REMOTE_FIRMWARE}"
 if [[ -n "$(opkg list | awk '{print $1}' | grep -E 'gzip')" ]]; then
@@ -149,13 +152,21 @@ else
 fi
 echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 升级固件中，请勿断开路由器电源，END]"
 ${UPGRADE_COMMAND} ${REMOTE_FIRMWARE}
-exit 0
 }
 
 case "$1" in
   "-u")
-    Remote_detection
     Remote_information
+    Remote_download
+  ;;
+  "-f")
+    Remote_information
+    Remote_download
+  ;;
+  "-i")
+    Remote_detection    
+    Remote_information
+    Remote_download
     Remote_upgrade
   ;;
   *)
