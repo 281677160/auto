@@ -25,43 +25,14 @@ async function startUpgradeFlow() {
         // 阶段2：处理响应
         const result = await response.json();
         
-        if (result.need_confirm) {
-            // 需要二次确认
-            const confirmCmd = confirm(
-                `${result.message}\n\n` +
-                `<%:Dangerous command:%>\n${result.command}\n\n` +
-                `<%:Log snippet:%>\n${result.log.split('\n').slice(-3).join('\n')}`
-            );
-            
-            if (confirmCmd) {
-                statusDiv.innerHTML = '<%:Executing confirmed command...%> 🔧';
-                const confirmResponse = await fetch('<%=url("admin/system/autoupdate/do_upgrade")%>', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: `confirm=1&cmd=${encodeURIComponent(result.command)}`
-                });
-                
-                const confirmResult = await confirmResponse.json();
-                showFinalResult(confirmResult);
-            }
-        } else {
-            // 直接显示最终结果
-            showFinalResult(result);
+        if (result.status_msg) {
+            statusDiv.innerHTML = result.status_msg;
         }
         
-    } catch (error) {
-        statusDiv.innerHTML = `<span style="color:red"><%:Network error:%> ${error}</span>`;
-    } finally {
-        btn.disabled = false;
-    }
-
-    function showFinalResult(data) {
-        if (data.success) {
+        if (result.success) {
             statusDiv.innerHTML = '<span style="color:green">✔️ <%:Upgrade started!%></span>';
             logPre.style.display = 'block';
-            logPre.textContent = data.log || '<%:No logs available%>';
+            logPre.textContent = result.log || '<%:No logs available%>';
             
             // 自动跳转倒计时
             let count = 10;
@@ -72,11 +43,10 @@ async function startUpgradeFlow() {
                     window.location.reload();
                 }
             }, 1000);
-            
         } else {
-            statusDiv.innerHTML = `<span style="color:red">❌ <%:Operation failed:%> ${data.message}</span>`;
+            statusDiv.innerHTML = `<span style="color:red">❌ <%:Operation failed:%> ${result.message}</span>`;
             logPre.style.display = 'block';
-            logPre.textContent = data.log || '<%:No failure logs%>';
+            logPre.textContent = result.log || '<%:No failure logs%>';
 
             // 自动跳转倒计时
             let count = 60;
@@ -88,6 +58,10 @@ async function startUpgradeFlow() {
                 }
             }, 1000);
         }
+    } catch (error) {
+        statusDiv.innerHTML = `<span style="color:red"><%:Network error:%> ${error}</span>`;
+    } finally {
+        btn.disabled = false;
     }
 }
 </script>
