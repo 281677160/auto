@@ -155,15 +155,14 @@ ${UPGRADE_COMMAND} ${REMOTE_FIRMWARE}
 }
 
 case "$1" in
-  "-u")
+  "-i")
     Remote_information
     Remote_download
   ;;
   "-f")
-    Remote_information
-    Remote_download
+    Remote_upgrade
   ;;
-  "-i")
+  "-u")
     Remote_detection    
     Remote_information
     Remote_download
