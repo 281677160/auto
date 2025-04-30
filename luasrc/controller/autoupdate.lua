@@ -35,7 +35,7 @@ function action_upgrade()
     end
 
     -- 阶段3：执行升级操作
-    local upgrade_code = luci.sys.call("AutoUpdate -u > /tmp/autoupdate.log 2>&1")
+    local upgrade_code = luci.sys.call("AutoUpdate -i > /tmp/autoupdate.log 2>&1")
     
     -- 成功直接返回
     if upgrade_code == 0 then
