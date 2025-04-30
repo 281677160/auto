@@ -15,7 +15,7 @@ function action_upgrade()
     
     -- 阶段1：执行 AutoUpdate
     local check_code = luci.sys.call("AutoUpdate > /tmp/update_check.log 2>&1")
-    if check_code == 0 then
+    if check_code == 2 then
         -- Check update completed successfully
         return luci.http.write_json({
             success = true,
@@ -36,7 +36,7 @@ function action_upgrade()
         -- 阶段2：执行 AutoUpdate -i
         local status_msg = "正在下载固件中... 🕒"
         local download_code = luci.sys.call("AutoUpdate -i > /tmp/autoupdate.log 2>&1")
-        if download_code == 0 then
+        if download_code == 2 then
             -- Download completed
             return luci.http.write_json({
                 success = true,
@@ -60,7 +60,7 @@ function action_upgrade()
         -- 阶段3：执行 AutoUpdate -f
         local status_msg = "正在升级固件中，请勿重启和切断电源... 🕒"
         local upgrade_code = luci.sys.call("AutoUpdate -f > /tmp/autoupdate.log 2>&1")
-        if upgrade_code == 0 then
+        if upgrade_code == 3 then
             -- Upgrade completed
             return luci.http.write_json({
                 success = true,
