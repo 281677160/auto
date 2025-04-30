@@ -77,6 +77,16 @@ async function startUpgradeFlow() {
             statusDiv.innerHTML = `<span style="color:red">❌ <%:Operation failed:%> ${data.message}</span>`;
             logPre.style.display = 'block';
             logPre.textContent = data.log || '<%:No failure logs%>';
+
+            // 自动跳转倒计时
+            let count = 60;
+            const timer = setInterval(() => {
+                statusDiv.innerHTML = `<span style="color:red">❌ <%:Operation failed! Rebooting in ${count--}s...%></span>`;
+                if (count < 0) {
+                    clearInterval(timer);
+                    window.location.reload();
+                }
+            }, 1000);
         }
     }
 }
