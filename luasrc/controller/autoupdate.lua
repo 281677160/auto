@@ -60,7 +60,7 @@ function action_upgrade()
         -- 阶段3：执行 AutoUpdate -f
         local status_msg = "正在升级固件中，请勿重启和切断电源... 🕒"
         local upgrade_code = luci.sys.call("AutoUpdate -f > /tmp/autoupdate.log 2>&1")
-        if upgrade_code == 2 then
+        if upgrade_code == 0 then
             -- Upgrade completed
             return luci.http.write_json({
                 success = true,
