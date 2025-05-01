@@ -11,7 +11,7 @@ function action_upgrade()
     luci.http.prepare_content("application/json")
     
     -- 清理旧的日志文件和标志文件
-    os.execute("rm -f /tmp/update_check.log /tmp/autoupdate.log /tmp/autoupdate_confirm.log /tmp/Updatei /tmp/Updatef")
+    os.execute("rm -f /tmp/autoupdate.log /tmp/Updatei")
     os.execute("tee /tmp/autoupdate.log 2>/dev/null")
     
     -- 阶段1：执行 AutoUpdate
@@ -37,7 +37,7 @@ function action_upgrade()
         -- 阶段2：执行 AutoUpdate -i
         local status_msg = "正在下载固件中... 🕒"
         local download_code = luci.sys.call("AutoUpdate -i > /tmp/autoupdate.log 2>&1")
-        if download_code == 2 then
+        if download_code == 0 then
             -- Download completed
             return luci.http.write_json({
                 success = true,
@@ -57,7 +57,7 @@ function action_upgrade()
     end
 
     -- 检查是否需要继续运行 AutoUpdate -f
-    if os.execute("test -f /tmp/Updatef") == 0 then
+    if download_code == 0 then
         -- 阶段3：执行 AutoUpdate -f
         local status_msg = "正在升级固件中，请勿重启和切断电源... 🕒"
         local upgrade_code = luci.sys.call("AutoUpdate -f >> /tmp/autoupdate.log 2>&1")
