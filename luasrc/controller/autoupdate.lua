@@ -11,7 +11,7 @@ function action_upgrade()
     luci.http.prepare_content("application/json")
     
     -- 清理旧的日志文件和标志文件
-    os.execute("rm -f /tmp/autoupdate.log /tmp/Updatei")
+    os.execute("rm -f /tmp/autoupdate.log /tmp/Updatei /tmp/Updatef")
     os.execute("tee /tmp/autoupdate.log 2>/dev/null")
     
     -- 阶段1：执行 AutoUpdate
