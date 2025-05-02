@@ -117,13 +117,13 @@ if [[ -n "${LOCAL_VERSION}" ]] && [[ -n "${CLOUD_VERSION}" ]]; then
   if [[ "${LOCAL_VERSION}" -eq "${CLOUD_VERSION}" ]]; then
     echo "${CLOUD_FIRMWARE_VERSION} [已是最新]" > /tmp/cloud_version
     echo "no_update" > /tmp/compare_version
-    exit 1
+    exit 0
   elif [[ "${LOCAL_VERSION}" -lt "${CLOUD_VERSION}" ]]; then
     echo "${CLOUD_FIRMWARE_VERSION} [有可更新固件]" > /tmp/cloud_version
   elif [[ "${LOCAL_VERSION}" -gt "${CLOUD_VERSION}" ]]; then
     echo "${CLOUD_FIRMWARE_VERSION} [云端最高版本固件,低于您现在所使用版本,请到云端查看原因]" > /tmp/cloud_version
     echo "no_update" > /tmp/compare_version
-    exit 1
+    exit 0
   fi
 fi
 }
@@ -186,6 +186,7 @@ else
   UPGRADE_COMMAND='sysupgrade -F -q'
 fi
 echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 升级固件中，请勿断开路由器电源，END]"
+echo "no_update" > /tmp/upgrade_version
 ${UPGRADE_COMMAND} ${REMOTE_FIRMWARE}
 }
 
