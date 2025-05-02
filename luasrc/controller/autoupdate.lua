@@ -1,89 +1,105 @@
 module("luci.controller.autoupdate", package.seeall)
 
+-- 引入 ubus 模块
+local ubus = require "ubus"
+
+-- 全局变量记录升级状态
+local upgrade_status = {
+    status = "idle",
+    message = ""
+}
+
+-- 新增全局变量，用于标记是否确认升级
+local is_upgrade_confirmed = false
+
 function index()
     entry({"admin", "system", "autoupdate"}, cbi("autoupdate"), _("AutoUpdate"), 60)
-    
-    -- 添加升级操作入口
     entry({"admin", "system", "autoupdate", "do_upgrade"}, call("action_upgrade"), nil).leaf = true
+    entry({"admin", "system", "autoupdate", "check_status"}, call("action_check_status"), nil).leaf = true
+    -- 新增确认升级的接口
+    entry({"admin", "system", "autoupdate", "confirm_upgrade"}, call("action_confirm_upgrade"), nil).leaf = true
 end
 
 function action_upgrade()
-    luci.http.prepare_content("application/json")
-    
-    -- 清理旧的日志文件和标志文件
-    os.execute("rm -f /tmp/autoupdate.log /tmp/Updatei /tmp/Updatef")
-    os.execute("tee /tmp/autoupdate.log 2>/dev/null")
-    
-    -- 阶段1：执行 AutoUpdate
-    local check_code = luci.sys.call("AutoUpdate -k >> /tmp/autoupdate.log 2>&1")
-    if check_code == 2 then
-        -- Check update completed successfully
-        return luci.http.write_json({
-            success = true,
-            message = "Check update completed successfully",
-            log = io.popen("cat /tmp/autoupdate.log"):read("*a")
-        })
-    elseif check_code == 1 then
-        -- Check update failed
-        return luci.http.write_json({
-            success = false,
-            message = "Check update failed",
-            log = io.popen("cat /tmp/autoupdate.log"):read("*a")
-        })
+    -- 定义通用文件检查函数:ml-citation{ref="6,8" data="citationList"}
+    local function check_version_file()
+        local ver_file = io.open("/tmp/compare_version", "r")
+        if ver_file then
+            local content = ver_file:read("*l") or ""
+            ver_file:close()
+            return content:gsub("%s+", "") == "no_update"
+        end
+        return false
     end
 
-    -- 检查是否需要继续运行 AutoUpdate -i
-    if os.execute("test -f /tmp/Updatei") == 0 then
-        -- 阶段2：执行 AutoUpdate -i
-        local status_msg = "正在下载固件中... 🕒"
-        local download_code = luci.sys.call("AutoUpdate -i > /tmp/autoupdate.log 2>&1")
-        if download_code == 0 then
-            -- Download completed
-            return luci.http.write_json({
-                success = true,
-                message = "Download completed",
-                log = io.popen("cat /tmp/autoupdate.log"):read("*a"),
-                status_msg = status_msg
-            })
-        elseif download_code == 1 then
-            -- Download failed
-            return luci.http.write_json({
-                success = false,
-                message = "Download failed",
-                log = io.popen("cat /tmp/autoupdate.log"):read("*a"),
-                status_msg = status_msg
-            })
+    -- 执行基础检查命令
+    local check_result = luci.sys.call("/usr/bin/AutoUpdate > /tmp/update_check.log 2>&1")
+    if check_result ~= 0 then
+        -- 新增版本文件判断:ml-citation{ref="2,6" data="citationList"}
+        if check_version_file() then
+            luci.http.write_json({ success = false, message = "云端没有最新固件,无需更新" })
+        else
+            luci.http.write_json({ success = false, message = "Check update failed" })
+        end
+        return
+    end
+
+    -- 标记为未确认升级
+    is_upgrade_confirmed = false
+    luci.http.write_json({ success = true, message = "Upgrade can be started", needUpgrade = true })
+end
+
+function action_confirm_upgrade()
+    -- 标记为确认升级
+    is_upgrade_confirmed = true
+    -- 执行升级命令
+    local pid = luci.sys.exec("AutoUpdate -u > /tmp/autoupdate.log 2>&1 & echo $!")
+    upgrade_status.status = "running"
+    upgrade_status.message = ""
+
+    -- 启动一个异步任务来监控升级状态
+    luci.sys.call(string.format([[
+        (
+            wait %s
+            EXIT_CODE=$?
+            if [ $EXIT_CODE -eq 0 ]; then
+                ubus call luci-autoupdate set_status '{"status": "completed", "message": ""}'
+            else
+                ubus call luci-autoupdate set_status '{"status": "error", "message": "Upgrade failed with exit code $EXIT_CODE"}'
+            fi
+        ) &
+    ]], pid))
+
+    luci.http.write_json({ success = true, message = "Upgrade started", needUpgrade = true })
+end
+
+function action_check_status()
+    luci.http.write_json(upgrade_status)
+end
+
+-- 注册 ubus 方法来更新状态
+local conn = ubus.connect()
+if conn then
+    local success, err = pcall(function()
+        conn:register("luci-autoupdate", {
+            set_status = {
+                function(req, msg)
+                    upgrade_status.status = msg.status
+                    upgrade_status.message = msg.message
+                end,
+                { status = ubus.STRING, message = ubus.STRING }
+            }
+        })
+    end)
+    if not success then
+        if luci and luci.log then
+            luci.log("Failed to register ubus method: " .. tostring(err))
         end
     end
-
-    -- 检查是否需要继续运行 AutoUpdate -f
-    if os.execute("test -f /tmp/Updatef") == 0 then
-        -- 阶段3：执行 AutoUpdate -f
-        local status_msg = "正在升级固件中，请勿重启和切断电源... 🕒"
-        local upgrade_code = luci.sys.call("AutoUpdate -f >> /tmp/autoupdate.log 2>&1")
-        if upgrade_code == 0 then
-            -- Upgrade completed
-            return luci.http.write_json({
-                success = true,
-                message = "Upgrade completed",
-                log = io.popen("cat /tmp/autoupdate.log"):read("*a"),
-                status_msg = status_msg
-            })
-        elseif upgrade_code == 1 then
-            -- Upgrade failed
-            return luci.http.write_json({
-                success = false,
-                message = "Upgrade failed",
-                log = io.popen("cat /tmp/autoupdate.log"):read("*a"),
-                status_msg = status_msg
-            })
-        end
+    conn:close()
+else
+    if luci and luci.log then
+        local err = debug.traceback()
+        luci.log("Failed to connect to ubus: " .. err)
     end
-
-    -- 如果没有标志文件，返回未知错误
-    return luci.http.write_json({
-        success = false,
-        message = "Unknown error occurred during upgrade process",
-        log = io.popen("cat /tmp/autoupdate.log"):read("*a")
-    })
 end
