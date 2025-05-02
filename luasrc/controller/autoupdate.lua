@@ -33,7 +33,7 @@ function action_upgrade()
     end
 
     -- 执行基础检查命令
-    local check_result = luci.sys.call("/usr/bin/AutoUpdate > /tmp/update_check.log 2>&1")
+    local check_result = luci.sys.call("/usr/bin/AutoUpdate > /tmp/autoupdate.log 2>&1")
     if check_result ~= 0 then
         -- 新增版本文件判断:ml-citation{ref="2,6" data="citationList"}
         if check_version_file() then
@@ -53,7 +53,7 @@ function action_confirm_upgrade()
     -- 标记为确认升级
     is_upgrade_confirmed = true
     -- 执行升级命令
-    local pid = luci.sys.exec("AutoUpdate -u > /tmp/autoupdate.log 2>&1 & echo $!")
+    local pid = luci.sys.exec("AutoUpdate -k > /tmp/autoupdate.log 2>&1 & echo $!")
     upgrade_status.status = "running"
     upgrade_status.message = ""
     if pid ~= 1 then
