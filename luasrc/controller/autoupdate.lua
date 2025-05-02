@@ -27,13 +27,11 @@ function action_upgrade()
     -- 执行基础检查命令
     -- 阶段1：执行 AutoUpdate
     local check_result = luci.sys.call("/usr/bin/AutoUpdate > /tmp/autoupdate.log 2>&1")
-    if check_result ~= 0 then
-        luci.http.write_json({ success = false, message = "Check update failed" })
-        return
-    end
-
     if os.execute("test -f /tmp/compare_version") == 0 then
         luci.http.write_json({ success = false, message = "云端没有最新固件,无需更新", needUpgrade = false })
+        return
+    elseif check_result ~= 0 then
+        luci.http.write_json({ success = false, message = "Check update failed" })
         return
     end
 
