@@ -195,6 +195,10 @@ case "$1" in
     Remote_information
     Remote_download
   ;;
+  "-k")  
+    Remote_information
+    Remote_download
+  ;;
   *)
     Remote_detection
     Remote_information
