@@ -15,8 +15,13 @@ else
   exit 1
 fi
 
-if ! wget --timeout=40 -t 1 "${RELEASE_DOWNLOAD1}/zzz_api" -O /tmp/api_data; then
-  curl -# -L --max-time 40 "${RELEASE_DOWNLOAD2}/zzz_api" -o /tmp/api_data
+if ! wget --timeout=40 -t 1 "${RELEASE_DOWNLOAD1}/zzz_api" -O /tmp/api_version; then
+  curl -fsSL --max-time 40 "${RELEASE_DOWNLOAD2}/zzz_api" -o /tmp/api_version
+fi
+
+if [[ -z "$(grep -E "assets" /tmp/api_version)" ]]; then
+  echo "获取API数据失败,请检测网络,或您的github仓库为私库?" > /tmp/cloud_version
+  exit 1
 fi
 
 if [[ -z "$(grep -E "assets" /tmp/api_data)" ]]; then
@@ -44,7 +49,7 @@ fi
 # 获取固件数据
 regex="https://.*${LUCI_EDITION}-${SOURCE}-${DEVICE_MODEL}-[0-9]+-${BOOT_TYPE}-.*${FIRMWARE_SUFFIX}"
 # 查找目标行
-target_line=$(grep -E "$regex" /tmp/api_data | tail -n 1)
+target_line=$(grep -E "$regex" /tmp/api_version | tail -n 1)
 if [ -n "$target_line" ]; then
     # 从行中提取固件全名称
     start_str="${LUCI_EDITION}-${SOURCE}-${DEVICE_MODEL}-"
@@ -61,8 +66,8 @@ if [ -n "$target_line" ]; then
     # 提取云端已有的固件MD5值
     CLOUD__MD256=$(echo "$REMOTE_FIRMWARE" | awk -F'-' '{print $7}' | awk -F'.' '{print $1}')
     # 提取云端已有的固件size值
-    let X=$(grep -n "$REMOTE_FIRMWARE" /tmp/api_data | tail -1 | cut -d : -f 1)-4
-    let CLOUD_FIRMWARE_SIZE=$(sed -n "${X}p" /tmp/api_data | grep -Eo "[0-9]+" | awk '{print ($1)/1048576}' | awk -F. '{print $1}')+1
+    let X=$(grep -n "$REMOTE_FIRMWARE" /tmp/api_version | tail -1 | cut -d : -f 1)-4
+    let CLOUD_FIRMWARE_SIZE=$(sed -n "${X}p" /tmp/api_version | grep -Eo "[0-9]+" | awk '{print ($1)/1048576}' | awk -F. '{print $1}')+1
     echo "固件全名称: $REMOTE_FIRMWARE"
     echo "固件时间戳: $CLOUD_VERSION"
     echo "固件MD5值: $CLOUD__MD256"
