@@ -165,7 +165,6 @@ if [[ ! "${CLOUD__MD5256}" == "${LOCAL_MD5256}" ]]; then
 else
   echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") MD5对比成功]"
 fi
-exit 1
 
 echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 正在执行更新固件前的备份]"
 chmod 755 "${REMOTE_FIRMWARE}"
