@@ -131,15 +131,16 @@ fi
 function Remote_download() {
 [ ! -d "${DOWNLOAD_PATH}" ] && mkdir -p ${DOWNLOAD_PATH} || rm -rf $DOWNLOAD_PATH/*
 cd "${DOWNLOAD_PATH}"
-echo "${RELEASE_DOWNLOAD1}/${REMOTE_FIRMWARE}"
 echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 开始下载云端固件]"
 if [[  "$(curl -I -s --connect-timeout 8 google.com -w %{http_code} | tail -n1)" == "301" ]]; then
+  echo "${RELEASE_DOWNLOAD1}/${REMOTE_FIRMWARE}"
   if ! wget -q --show-progress ${RELEASE_DOWNLOAD1}/${REMOTE_FIRMWARE} -O ${REMOTE_FIRMWARE}; then
     if ! curl -# -L ${RELEASE_DOWNLOAD1}/${REMOTE_FIRMWARE} -o ${REMOTE_FIRMWARE}; then
       curl -# -L ${RELEASE_DOWNLOAD2}/${REMOTE_FIRMWARE} -o ${REMOTE_FIRMWARE}
     fi
   fi
 else
+  echo "${RELEASE_DOWNLOAD1}/${REMOTE_FIRMWARE}"
   if ! wget -q --show-progress ${RELEASE_DOWNLOAD2}/${REMOTE_FIRMWARE} -O ${REMOTE_FIRMWARE}; then
     if ! curl -# -L ${RELEASE_DOWNLOAD1}/${REMOTE_FIRMWARE} -o ${REMOTE_FIRMWARE}; then
       curl -# -L ${RELEASE_DOWNLOAD2}/${REMOTE_FIRMWARE} -o ${REMOTE_FIRMWARE}
