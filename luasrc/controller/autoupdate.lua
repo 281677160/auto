@@ -21,6 +21,9 @@ function index()
 end
 
 function action_upgrade()
+    -- 清理日志
+    os.execute("rm -f /tmp/autoupdate.log /tmp/compare_version")
+    
     -- 定义通用文件检查函数:ml-citation{ref="6,8" data="citationList"}
     local function check_version_file()
         local ver_file = io.open("/tmp/compare_version", "r")
