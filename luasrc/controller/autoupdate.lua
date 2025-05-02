@@ -24,32 +24,23 @@ function action_upgrade()
     -- 清理日志
     os.execute("rm -f /tmp/autoupdate.log /tmp/compare_version")
     
-    -- 定义通用文件检查函数:ml-citation{ref="6,8" data="citationList"}
-    local function check_version_file()
-        local ver_file = io.open("/tmp/compare_version", "r")
-        if ver_file then
-            local content = ver_file:read("*l") or ""
-            ver_file:close()
-            return content:gsub("%s+", "") == "no_update"
-        end
-        return false
-    end
-
     -- 执行基础检查命令
+    -- 阶段1：执行 AutoUpdate
     local check_result = luci.sys.call("/usr/bin/AutoUpdate > /tmp/autoupdate.log 2>&1")
     if check_result ~= 0 then
-        -- 新增版本文件判断:ml-citation{ref="2,6" data="citationList"}
-        if check_version_file() then
-            luci.http.write_json({ success = false, message = "云端没有最新固件,无需更新", needUpgrade = false })
-        else
-            luci.http.write_json({ success = false, message = "Check update failed", needUpgrade = false })
-        end
+        luci.http.write_json({ success = false, message = "Check update failed" })
+        return
+    end
+
+    if os.execute("test -f /tmp/compare_version") == 0 then
+        luci.http.write_json({ success = false, message = "云端没有最新固件,无需更新", needUpgrade = false })
         return
     end
 
     -- 标记为未确认升级
     is_upgrade_confirmed = false
     luci.http.write_json({ success = true, message = "Upgrade can be started", needUpgrade = true })
+
 end
 
 function action_confirm_upgrade()
@@ -66,7 +57,6 @@ function action_confirm_upgrade()
         end
         return
     end
-
 
     -- 启动一个异步任务来监控升级状态
     luci.sys.call(string.format([[
