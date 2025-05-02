@@ -56,6 +56,14 @@ function action_confirm_upgrade()
     local pid = luci.sys.exec("AutoUpdate -u > /tmp/autoupdate.log 2>&1 & echo $!")
     upgrade_status.status = "running"
     upgrade_status.message = ""
+    if pid ~= 1 then
+        -- 新增版本文件判断:ml-citation{ref="2,6" data="citationList"}
+        if check_version_file() then
+            luci.http.write_json({ success = false, message = "Check update failed" })
+        end
+        return
+    end
+
 
     -- 启动一个异步任务来监控升级状态
     luci.sys.call(string.format([[
