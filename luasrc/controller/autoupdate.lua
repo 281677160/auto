@@ -22,7 +22,7 @@ end
 
 function action_upgrade()
     -- 清理日志
-    os.execute("rm -f /tmp/autoupdate.log /tmp/compare_version")
+    os.execute("rm -f /tmp/autoupdate.log /tmp/compare_version /tmp/upgrade_version")
     
     -- 执行基础检查命令
     -- 阶段1：执行 AutoUpdate
@@ -49,7 +49,7 @@ function action_confirm_upgrade()
     upgrade_status.status = "running"
     upgrade_status.message = ""
     if pid ~= 0 then
-        if os.execute("test -f /tmp/compare_version") == 0 then
+        if os.execute("test -f /tmp/upgrade_version") == 0 then
             luci.http.write_json({ success = false, message = "固件升级中" })
         else
             luci.http.write_json({ success = false, message = "Check update failed" })
