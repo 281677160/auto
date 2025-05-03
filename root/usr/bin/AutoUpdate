@@ -8,6 +8,8 @@ function Remote_detection() {
 rm -rf /tmp/*_version
 
 if [[ -f "/etc/openwrt_update" ]]; then
+if [[ -n "$( grep -E "GITHUB_LINK" "/etc/openwrt_update" 2>/dev/null)" ]] && \
+[[ -n "$( grep -E "RELEASE_DOWNLOAD" "/etc/openwrt_update" 2>/dev/null)" ]]; then
   source /etc/openwrt_update
 else
   echo "缺少openwrt_update文件" > /tmp/cloud_version
