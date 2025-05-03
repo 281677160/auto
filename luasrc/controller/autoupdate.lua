@@ -46,11 +46,24 @@ function action_confirm_upgrade()
     is_upgrade_confirmed = true
     -- 执行升级命令
     local pid = luci.sys.exec("AutoUpdate -k > /tmp/autoupdate.log 2>&1 & echo $!")
-    upgrade_status.status = "running"
-    upgrade_status.message = ""
-    if os.execute("test -f /tmp/upgrade_version") == 0 then
+    pid = tonumber(pid:match("%d+"))  -- 清理PID格式
+
+    -- 进程检测函数（兼容Linux/Unix系统）
+    local function is_running(pid)
+        if not pid or pid <= 0 then return false end
+        return luci.sys.execute(string.format("kill -0 %d 2>/dev/null", pid)) == 0
+    end
+
+    -- 主判断逻辑
+    if is_running(pid) then
         luci.http.write_json({ success = false, message = "固件升级中" })
-        return
+    else
+        -- 补充文件存在性检查
+        if nixio.fs.access("/tmp/upgrade_version") then
+            luci.http.write_json({ success = false, message = "固件升级中" })
+        else
+            luci.http.write_json({ success = false, message = "检查更新失败" })
+        end
     end
 
     -- 启动一个异步任务来监控升级状态
