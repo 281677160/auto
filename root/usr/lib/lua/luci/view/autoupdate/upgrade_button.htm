@@ -1,147 +1,69 @@
 <%+cbi/valueheader%>
 <div class="cbi-value-field">
     <input class="cbi-button cbi-button-apply" type="button" value="<%:Start Upgrade%>" 
-        onclick="confirmUpgrade()" id="upgradeButton" />
+        onclick="confirmUpgrade()" />
+    <div id="upgrade-status" style="display: inline-block; margin-left: 10px;"></div>
 </div>
 <script type="text/javascript">
-function confirmUpgrade() {
-    if (confirm('<%:Are you sure you want to upgrade the firmware?%>')) {
-        var button = document.getElementById('upgradeButton');
-        // 按下按钮
-        button.disabled = true;
-        button.style.backgroundColor = '#ccc';
-        button.style.cursor = 'not-allowed';
+var button = document.querySelector('.cbi-button-apply');
+var statusDiv = document.getElementById('upgrade-status');
 
-        var xhr = new XMLHttpRequest();
-        xhr.open('POST', '<%=url("admin/system/autoupdate/do_upgrade")%>', true);
-        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState === 4) {
-                try {
-                    var response = JSON.parse(xhr.responseText);
-                    if (response.success) {
-                        if (response.needUpgrade) {
-                            var cancelConfirm = confirm('<%:Upgrade can be started! Router will reboot soon. Do you want to continue?%>');
-                            if (!cancelConfirm) {
-                                // 用户取消，弹起按钮
-                                button.disabled = false;
-                                button.style.backgroundColor = '';
-                                button.style.cursor = 'pointer';
-                                button.value = '<%:Start Upgrade%>';
-                                alert('<%:Upgrade cancelled by user.%>');
-                                return;
-                            }
-                            // 用户确认，发送确认升级请求
-                            var confirmXhr = new XMLHttpRequest();
-                            confirmXhr.open('POST', '<%=url("admin/system/autoupdate/confirm_upgrade")%>', true);
-                            confirmXhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-                            confirmXhr.onreadystatechange = function() {
-                                if (confirmXhr.readyState === 4) {
-                                    try {
-                                        var confirmResponse = JSON.parse(confirmXhr.responseText);
-                                        if (confirmResponse.success) {
-                                            // 用户确认后再次按下按钮
-                                            button.value = '<%:Upgrading...%>';
-                                            // 开始轮询检查状态
-                                            checkUpgradeStatus(button);
-                                        } else {
-                                            // 确认升级失败，弹起按钮
-                                            button.disabled = false;
-                                            button.style.backgroundColor = '';
-                                            button.style.cursor = 'pointer';
-                                            button.value = '<%:Start Upgrade%>';
-                                            alert('<%:Confirm upgrade failed!%> ' + confirmResponse.message);
-                                        }
-                                    } catch (error) {
-                                        // 处理确认响应错误，弹起按钮
-                                        button.disabled = false;
-                                        button.style.backgroundColor = '';
-                                        button.style.cursor = 'pointer';
-                                        button.value = '<%:Start Upgrade%>';
-                                        alert('<%:An error occurred while processing the confirm response!%>');
-                                    }
-                                }
-                            };
-                            confirmXhr.onerror = function() {
-                                // 确认网络错误，弹起按钮
-                                button.disabled = false;
-                                button.style.backgroundColor = '';
-                                button.style.cursor = 'pointer';
-                                button.value = '<%:Start Upgrade%>';
-                                alert('<%:Network error occurred while confirming upgrade!%>');
-                            };
-                            confirmXhr.send();
-                        } else {
-                            // 无需升级，弹起按钮
-                            button.disabled = false;
-                            button.style.backgroundColor = '';
-                            button.style.cursor = 'pointer';
-                            button.value = '<%:Start Upgrade%>';
-                            alert('<%:云端没有最新固件,无需更新%>');
-                        }
-                    } else {
-                        // 升级失败，弹起按钮
-                        button.disabled = false;
-                        button.style.backgroundColor = '';
-                        button.style.cursor = 'pointer';
-                        button.value = '<%:Start Upgrade%>';
-                        alert('<%:Upgrade failed!%> ' + response.message);
-                    }
-                } catch (error) {
-                    // 处理响应错误，弹起按钮
-                    button.disabled = false;
-                    button.style.backgroundColor = '';
-                    button.style.cursor = 'pointer';
-                    button.value = '<%:Start Upgrade%>';
-                    alert('<%:An error occurred while processing the response!%>');
-                }
-            }
-        };
-
-        xhr.onerror = function() {
-            // 网络错误，弹起按钮
-            button.disabled = false;
-            button.style.backgroundColor = '';
-            button.style.cursor = 'pointer';
-            button.value = '<%:Start Upgrade%>';
-            alert('<%:Network error occurred!%>');
-        };
-
-        xhr.send();
-    }
+function setButtonState(disabled, text) {
+    button.disabled = disabled;
+    button.value = text;
+    statusDiv.textContent = '';
 }
 
-function checkUpgradeStatus(button) {
-    var statusXhr = new XMLHttpRequest();
-    statusXhr.open('GET', '<%=url("admin/system/autoupdate/check_status")%>', true);
-    statusXhr.onreadystatechange = function() {
-        if (statusXhr.readyState === 4) {
-            try {
-                var statusResponse = JSON.parse(statusXhr.responseText);
-                if (statusResponse.status === "completed") {
-                    // 升级完成，弹起按钮
-                    button.disabled = false;
-                    button.style.backgroundColor = '';
-                    button.style.cursor = 'pointer';
-                    button.value = '<%:Start Upgrade%>';
-                } else if (statusResponse.status === "running") {
-                    // 继续轮询
-                    setTimeout(function() {
-                        checkUpgradeStatus(button);
-                    }, 2000); // 每隔2秒检查一次，你可以调整
-                }
-            } catch (error) {
-                // 处理状态查询错误，弹起按钮
-                button.disabled = false;
-                button.style.backgroundColor = '';
-                button.style.cursor = 'pointer';
-                button.value = '<%:Start Upgrade%>';
-                alert('<%:An error occurred while checking upgrade status! %>');
-            }
+function showStatus(message, isError) {
+    statusDiv.style.color = isError ? '#c44' : '#4c4';
+    statusDiv.textContent = message;
+}
+
+function confirmUpgrade() {
+    setButtonState(true, '<%:Checking...%>');
+    
+    // 第一阶段：检查更新
+    fetch('<%=url("admin/system/autoupdate/do_check")%>', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!data.success) {
+            showStatus(data.message, true);
+            setButtonState(false, '<%:Start Upgrade%>');
+            return;
         }
-    };
-    statusXhr.send();
+        
+        if (data.has_update) {
+            if (confirm(data.message)) {
+                // 第二阶段：确认升级
+                setButtonState(true, '<%:Upgrading...%>');
+                performUpgrade();
+            } else {
+                setButtonState(false, '<%:Start Upgrade%>');
+            }
+        } else {
+            showStatus(data.message, false);
+            setButtonState(false, '<%:Start Upgrade%>');
+        }
+    });
+}
+
+function performUpgrade() {
+    fetch('<%=url("admin/system/autoupdate/do_upgrade")%>', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showStatus('<%:Upgrade started! Rebooting...%>', false);
+        } else {
+            showStatus(data.message, true);
+            setButtonState(false, '<%:Start Upgrade%>');
+        }
+    });
 }
 </script>
 <%+cbi/valuefooter%>
