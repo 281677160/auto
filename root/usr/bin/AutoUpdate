@@ -129,6 +129,7 @@ fi
 function Remote_download() {
 [ ! -d "${DOWNLOAD_PATH}" ] && mkdir -p ${DOWNLOAD_PATH} || rm -rf $DOWNLOAD_PATH/*
 cd "${DOWNLOAD_PATH}"
+echo "[PHASE 1] 开始下载固件" >> /tmp/autoupdate.log
 echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 开始下载云端固件]"
 if [[  "$(curl -I -s --connect-timeout 8 google.com -w %{http_code} | tail -n1)" == "301" ]]; then
   echo "${RELEASE_DOWNLOAD1}/${REMOTE_FIRMWARE}"
@@ -159,6 +160,7 @@ else
 fi
 
 echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 正在执行更新固件前的备份]"
+echo "[EXIT CODE] $?" >> /tmp/autoupdate.log
 chmod 755 "${REMOTE_FIRMWARE}"
 if [[ -n "$(opkg list | awk '{print $1}' | grep -E 'gzip')" ]]; then
   opkg remove gzip > /dev/null 2>&1
