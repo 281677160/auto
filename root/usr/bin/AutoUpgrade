@@ -29,7 +29,7 @@ else
   exit 1
 fi
 
-TIME y "是否更换仓库？需要更换请输入新仓库链接,不需要则留空回车即可."
+TIME y "是否更换仓库？更换仓库请输入新仓库链接,不需要则留空回车"
 echo "仓库链接格式：https://github.com/账号/仓库"
 TIME b "您现在仓库为：${GITHUB_LINK}"
 read -p "请输入：" git_url
