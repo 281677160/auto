@@ -161,7 +161,6 @@ else
 fi
 
 echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 正在执行更新固件前的备份]"
-echo "[EXIT CODE] $?" >> /tmp/autoupdate.log
 chmod 755 "${REMOTE_FIRMWARE}"
 if [[ -n "$(opkg list | awk '{print $1}' | grep -E 'gzip')" ]]; then
   opkg remove gzip > /dev/null 2>&1
@@ -181,8 +180,8 @@ else
   UPGRADE_COMMAND='sysupgrade -F -q'
 fi
 echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 升级固件中，请勿断开路由器电源，END]"
+echo "[EXIT CODE] $?" >> /tmp/autoupdate.log
 ${UPGRADE_COMMAND} ${REMOTE_FIRMWARE}
-exit 0
 }
 
 case "$1" in
