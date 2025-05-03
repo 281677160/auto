@@ -46,6 +46,8 @@ function action_confirm_upgrade()
     is_upgrade_confirmed = true
     -- 执行升级命令
     local pid = luci.sys.exec("AutoUpdate -k > /tmp/autoupdate.log 2>&1 & echo $!")
+    upgrade_status.status = "running"
+    upgrade_status.message = ""
     pid = tonumber(pid:match("%d+"))  -- 清理PID格式
 
     -- 进程检测函数（兼容Linux/Unix系统）
