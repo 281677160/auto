@@ -203,7 +203,7 @@ while :; do
       TIME r "敬告,请输入正确数值(1~${XYZDSZ})" >&2
   elif [[ "$YMXZ" =~ ^[0-9]+$ ]]; then
     if [[ "${YMXZ}" -le "${XYZDSZ}" ]]; then
-      REMOTE_FIRMWARE=$(cat /tmp/FIRMWARE_BANBEN | awk ''NR==${YMXZ}'')
+      REMOTE_FIRMWARE=$(awk -v line="$YMXZ" 'NR == line {print; exit}' /tmp/FIRMWARE_BANBEN)
       TIME g "您选择了安装 ${REMOTE_FIRMWARE} 固件"
       break
     else
