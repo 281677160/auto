@@ -10,7 +10,7 @@ end
 
 function action_check()
     os.execute("rm -f /tmp/compare_version")
-    local check_result = luci.sys.call("AutoUpdate >> /tmp/autoupdate.log 2>&1")
+    local check_result = luci.sys.call("AutoUpdate > /tmp/autoupdate.log 2>&1")
     
     local response = {}
     if check_result ~= 0 then
@@ -35,7 +35,7 @@ function action_check()
 end
 
 function action_upgrade()
-    local upgrade_result = luci.sys.call("AutoUpdate -u >> /tmp/autoupdate.log 2>&1")
+    local upgrade_result = luci.sys.call("AutoUpdate -u > /tmp/autoupdate.log 2>&1")
     
     local response = upgrade_result == 0 and
         { success = true, message = "升级已启动，设备即将重启！" } or  -- 注意结尾逗号
