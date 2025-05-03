@@ -5,78 +5,65 @@
     <div id="status-message" style="margin-left:10px;display:inline-block"></div>
 </div>
 <script type="text/javascript">
-// 全局状态锁（防止重复提交）:ml-citation{ref="3,6" data="citationList"}
 let isProcessing = false;
+let statusCheckInterval = null;
 
-function updateButtonState(disabled, text) {
+function updateUI(disabled, btnText, statusText, isError) {
     const btn = document.getElementById('upgrade-btn');
     btn.disabled = disabled;
-    btn.value = text;
-}
-
-function showStatus(text, isError) {
+    btn.value = btnText || btn.value;
     const statusDiv = document.getElementById('status-message');
     statusDiv.style.color = isError ? '#d44' : '#4a4';
-    statusDiv.textContent = text;
+    statusDiv.textContent = statusText || '';
 }
 
 function startUpgradeProcess() {
     if (isProcessing) return;
     isProcessing = true;
-    updateButtonState(true, '<%:检查中...%>');
+    updateUI(true, '检查中...', '正在检查更新...');
 
-    // 第一阶段：检查更新
-    fetch('<%=url("admin/system/autoupdate/do_check")%>', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-    })
-    .then(response => {
-        if (!response.ok) throw new Error(`HTTP错误: ${response.status}`);
-        return response.json();
-    })
+    fetch('<%=url("admin/system/autoupdate/do_check")%>', { method: 'POST' })
+    .then(res => res.ok ? res.json() : Promise.reject())
     .then(data => {
-        if (!data.success) {
-            showStatus(data.message, true);
-            return;
-        }
-        
+        if (!data.success) throw new Error(data.message);
         if (data.has_update && confirm(data.message)) {
-            // 第二阶段：执行升级
-            updateButtonState(true, '<%:升级中...%>');
-            performUpgrade();
+            startUpgrade();
         } else {
-            showStatus(data.message, !data.has_update);
+            updateUI(false, '<%:检查更新%>', data.message, false);
         }
     })
-    .catch(error => {
-        showStatus(`网络请求失败: ${error}`, true);
-    })
-    .finally(() => {
-        isProcessing = false;
-        updateButtonState(false, '<%:检查更新%>');
-    });
+    .catch(() => updateUI(false, '<%:检查更新%>', '检查更新失败', true))
+    .finally(() => isProcessing = false);
 }
 
-
-function performUpgrade() {
-    fetch('<%=url("admin/system/autoupdate/do_upgrade")%>', {
-        method: 'POST'
-    })
-    .then(response => {
-        if (response.status === 502) {  // 网关超时直接忽略:ml-citation{ref="5" data="citationList"}
-            showStatus("后台升级持续进行中...", false);
-            return;
-        }
-        return response.json();
-    })
+function startUpgrade() {
+    updateUI(true, '提交升级...', '正在启动升级进程');
+    
+    fetch('<%=url("admin/system/autoupdate/do_upgrade")%>', { method: 'POST' })
+    .then(res => res.json())
     .then(data => {
-        if (data && data.success) {
-            showStatus(data.message, false);
+        if (!data.success) throw new Error(data.message);
+        updateUI(true, '升级中...', '后台升级已启动');
+        // 启动状态轮询
+        statusCheckInterval = setInterval(checkUpgradeStatus, 3000);
+    })
+    .catch(() => updateUI(false, '<%:检查更新%>', '启动升级失败', true));
+}
+
+function checkUpgradeStatus(retryCount = 0) {
+    fetch('<%=url("admin/system/autoupdate/check_status")%>')
+    .then(res => res.json())
+    .then(data => {
+        if (data.running) {
+            updateUI(true, '升级中...', `PID ${data.pid} 运行中`);
+        } else if (retryCount < 3) {  // 增加重试机制
+            setTimeout(() => checkUpgradeStatus(retryCount+1), 1000);
+        } else {  // 最终失败判定
+            updateUI(false, '<%:检查更新%>', '状态检测异常', true);
         }
     })
-    .catch(() => { 
-        // 网络错误不中断进程:ml-citation{ref="2" data="citationList"}
-        showStatus("命令已提交，最终结果请查看日志", false);
+    .catch(() => {
+        if (retryCount < 3) checkUpgradeStatus(retryCount+1);
     });
 }
 </script>
