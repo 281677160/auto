@@ -48,12 +48,8 @@ function action_confirm_upgrade()
     local pid = luci.sys.exec("AutoUpdate -k > /tmp/autoupdate.log 2>&1 & echo $!")
     upgrade_status.status = "running"
     upgrade_status.message = ""
-    if pid ~= 0 then
-        if os.execute("test -f /tmp/upgrade_version") == 0 then
-            luci.http.write_json({ success = false, message = "固件升级中" })
-        else
-            luci.http.write_json({ success = false, message = "Check update failed" })
-        end
+    if os.execute("test -f /tmp/upgrade_version") == 0 then
+        luci.http.write_json({ success = false, message = "固件升级中" })
         return
     end
 
