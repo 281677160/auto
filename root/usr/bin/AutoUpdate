@@ -242,5 +242,6 @@ case "$1" in
   *)
     Remote_detection
     Remote_information
+    Remote_download
   ;;
 esac
