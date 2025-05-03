@@ -115,13 +115,12 @@ EOF
 if [[ -n "${LOCAL_VERSION}" ]] && [[ -n "${CLOUD_VERSION}" ]]; then
   if [[ "${LOCAL_VERSION}" -eq "${CLOUD_VERSION}" ]]; then
     echo "${CLOUD_FIRMWARE_VERSION} [已是最新]" > /tmp/cloud_version
-    echo "no_update" > /tmp/compare_version
     exit 0
   elif [[ "${LOCAL_VERSION}" -lt "${CLOUD_VERSION}" ]]; then
     echo "${CLOUD_FIRMWARE_VERSION} [有可更新固件]" > /tmp/cloud_version
+    echo "update" > /tmp/compare_version
   elif [[ "${LOCAL_VERSION}" -gt "${CLOUD_VERSION}" ]]; then
     echo "${CLOUD_FIRMWARE_VERSION} [云端最高版本固件,低于您现在所使用版本,请到云端查看原因]" > /tmp/cloud_version
-    echo "no_update" > /tmp/compare_version
     exit 0
   fi
 fi
@@ -133,17 +132,13 @@ cd "${DOWNLOAD_PATH}"
 echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 开始下载云端固件]"
 if [[  "$(curl -I -s --connect-timeout 8 google.com -w %{http_code} | tail -n1)" == "301" ]]; then
   echo "${RELEASE_DOWNLOAD1}/${REMOTE_FIRMWARE}"
-  if ! wget --timeout=480 -t 1 --no-check-certificate ${RELEASE_DOWNLOAD1}/${REMOTE_FIRMWARE} -O ${REMOTE_FIRMWARE}; then
-    if ! curl -L --max-time 480 -k ${RELEASE_DOWNLOAD1}/${REMOTE_FIRMWARE} -o ${REMOTE_FIRMWARE}; then
-      curl -L --max-time 480 -k ${RELEASE_DOWNLOAD2}/${REMOTE_FIRMWARE} -o ${REMOTE_FIRMWARE}
-    fi
+  if ! wget --timeout=600 -t 1 --no-check-certificate ${RELEASE_DOWNLOAD2}/${REMOTE_FIRMWARE} -O ${REMOTE_FIRMWARE}; then
+    curl -L --max-time 600 -k ${RELEASE_DOWNLOAD1}/${REMOTE_FIRMWARE} -o ${REMOTE_FIRMWARE}
   fi
 else
   echo "${RELEASE_DOWNLOAD1}/${REMOTE_FIRMWARE}"
-  if ! wget --timeout=480 -t 1 --no-check-certificate ${RELEASE_DOWNLOAD2}/${REMOTE_FIRMWARE} -O ${REMOTE_FIRMWARE}; then
-    if ! curl -L --max-time 480 -k ${RELEASE_DOWNLOAD1}/${REMOTE_FIRMWARE} -o ${REMOTE_FIRMWARE}; then
-      curl -L --max-time 480 -k ${RELEASE_DOWNLOAD2}/${REMOTE_FIRMWARE} -o ${REMOTE_FIRMWARE}
-    fi
+  if ! wget --timeout=600 -t 1 --no-check-certificate ${RELEASE_DOWNLOAD1}/${REMOTE_FIRMWARE} -O ${REMOTE_FIRMWARE}; then
+    curl -L --max-time 600 -k ${RELEASE_DOWNLOAD2}/${REMOTE_FIRMWARE} -o ${REMOTE_FIRMWARE}
   fi
 fi
 
@@ -151,7 +146,6 @@ if [[ $? -eq 0 ]]; then
   echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 云端固件下载成功]"
 else
   echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 云端固件下载失败]"
-  echo "no_update" > /tmp/upgrade_version
   exit 1
 fi
 
@@ -159,19 +153,11 @@ LOCAL_MD5256=$(md5sum ${REMOTE_FIRMWARE} |cut -c1-3)$(sha256sum ${REMOTE_FIRMWAR
 CLOUD__MD5256=${CLOUD__MD256}
 if [[ ! "${CLOUD__MD5256}" == "${LOCAL_MD5256}" ]]; then
   echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") MD5对比失败,固件可能在下载时损坏,请检查网络后重试!]"
-  echo "no_update" > /tmp/upgrade_version
   exit 1
 else
   echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") MD5对比成功]"
 fi
-cat > /tmp/upgrade_version <<-EOF
-DOWNLOAD_PATH=${DOWNLOAD_PATH}
-REMOTE_FIRMWARE=${REMOTE_FIRMWARE}
-EOF
-}
 
-function Remote_upgrade() {
-cd "${DOWNLOAD_PATH}"
 echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 正在执行更新固件前的备份]"
 chmod 755 "${REMOTE_FIRMWARE}"
 if [[ -n "$(opkg list | awk '{print $1}' | grep -E 'gzip')" ]]; then
@@ -192,40 +178,6 @@ else
   UPGRADE_COMMAND='sysupgrade -F -q'
 fi
 echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 升级固件中，请勿断开路由器电源，END]"
-echo "no_update" > /tmp/upgrade_version
-${UPGRADE_COMMAND} ${REMOTE_FIRMWARE}
-}
-
-function Remote_upgradek() {
-if [[ -f "/tmp/upgrade_version" ]]; then
-  chmod 755 /tmp/upgrade_version
-  source /tmp/upgrade_version
-  cd "${DOWNLOAD_PATH}"
-else
-  echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 缺少/tmp/upgrade_version文件]"
-  exit 1
-fi
-echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 正在执行更新固件前的备份]"
-chmod 755 "${REMOTE_FIRMWARE}"
-if [[ -n "$(opkg list | awk '{print $1}' | grep -E 'gzip')" ]]; then
-  opkg remove gzip > /dev/null 2>&1
-fi
-
-if [[ -f "/etc/deletefile" ]]; then
-  source /etc/deletefile
-fi
-
-rm -rf /etc/config/luci /tmp/luci
-echo "*/5 * * * * sleep 240; sh /etc/networkdetection > /dev/null 2>&1" >> /etc/crontabs/root
-/etc/init.d/cron restart
-rm -rf /mnt/*upback.tar.gz && sysupgrade -b /mnt/upback.tar.gz
-if [[ -n "$(ls -1 /mnt | grep -E 'upback.tar.gz')" ]]; then
-  UPGRADE_COMMAND='sysupgrade -F -f /mnt/upback.tar.gz'
-else
-  UPGRADE_COMMAND='sysupgrade -F -q'
-fi
-echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 升级固件中，请勿断开路由器电源，END]"
-echo "no_update" > /tmp/upgrade_version
 ${UPGRADE_COMMAND} ${REMOTE_FIRMWARE}
 }
 
@@ -234,14 +186,13 @@ case "$1" in
     Remote_detection    
     Remote_information
     Remote_download
-    Remote_upgrade
   ;;
   "-k")  
-    Remote_upgradek
+    Remote_information
+    Remote_download
   ;;
   *)
     Remote_detection
     Remote_information
-    Remote_download
   ;;
 esac
