@@ -20,12 +20,8 @@ if ! wget --timeout=40 -t 1 "${RELEASE_DOWNLOAD1}/zzz_api" -O /tmp/api_version; 
 fi
 
 if [[ -z "$(grep -E "assets" /tmp/api_version)" ]]; then
-  echo "获取API数据失败,请检测网络,或您的github仓库为私库?" > /tmp/cloud_version
-  exit 1
-fi
-
-if [[ -z "$(grep -E "assets" /tmp/api_version)" ]]; then
-  echo "获取API数据失败,Github地址不正确?，或此地址没云端存在，或您的仓库为私库?" > /tmp/cloud_version
+  echo "获取API数据失败,Github地址不正确?，或此地址没云端存在，或您的仓库为私库，或网络抽风了再次尝试看看?" > /tmp/cloud_version
+  echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 获取API数据失败,Github地址不正确?，或此地址没云端存在，或您的仓库为私库，或网络抽风了再次尝试看看?]"
   exit 1
 else
   echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 获取API数据成功!]"
@@ -73,7 +69,7 @@ if [ -n "$target_line" ]; then
     echo "固件MD5值: $CLOUD__MD256"
     echo "大小 (MB): $CLOUD_FIRMWARE_SIZE"
 else
-    echo "获取固件信息失败"
+    echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 获取固件信息失败]"
     exit 1
 fi
 
@@ -90,18 +86,21 @@ CLOUD_FIRMWARE_VERSION="${SOURCE}-${DEVICE_MODEL}-${CLOUD_VERSION}"
 
 if [[ -z "${LOCAL_VERSION}" ]]; then
   echo "未知原因,获取本地版本号失败!" > /tmp/cloud_version
+  echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 未知原因,获取本地版本号失败!]"
   exit 1
 else
   echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 获取本地版本号成功!]"
 fi
 if [[ -z "${CLOUD_VERSION}" ]]; then
-  echo "获取云端信息失败,x86注意本地跟云端固件显示的引导模式是否一致,或者就是云端压根就没您同类型的固件存在,或者作者更了固件获取条件导致您本地跟云端信息不一直!" > /tmp/cloud_version
+  echo "获取云端信息失败,x86注意本地跟云端固件显示的引导模式是否一致,或者就是云端压根就没您同类型的固件存在,或者作者更了固件获取条件导致您本地跟云端信息不一致!" > /tmp/cloud_version
+  echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 获取云端信息失败,x86注意本地跟云端固件显示的引导模式是否一致,或者就是云端压根就没您同类型的固件存在,或者作者更了固件获取条件导致您本地跟云端信息不一致!]"
   exit 1
 else
   echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 获取云端版本号成功!]"
 fi
 if [[ "${TMP_AVAILABLE}" -lt "${CLOUD_FIRMWARE_SIZE}" ]]; then
-  echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 固件tmp空间值[${TMP_AVAILABLE}M],云端固件体积[${CLOUD_FIRMWARE_SIZE}M],空间不足]"
+  echo "固件tmp空间值[${TMP_AVAILABLE}M],云端固件体积[${CLOUD_FIRMWARE_SIZE}M],路由器空间不足" > /tmp/cloud_version
+  echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 固件tmp空间值[${TMP_AVAILABLE}M],云端固件体积[${CLOUD_FIRMWARE_SIZE}M],路由器空间不足]"
   exit 1
 else
   echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 固件tmp空间值[${TMP_AVAILABLE}M],云端固件体积[${CLOUD_FIRMWARE_SIZE}M]]"
