@@ -115,6 +115,7 @@ else
     echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 获取固件信息失败]"
     exit 1
 fi
+
 # 固件内核版本
 KERNEL_MODE=$(uname -rs | cut -d ' ' -f2)
 # 固件/tmp空间值
