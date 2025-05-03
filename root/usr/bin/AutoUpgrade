@@ -135,18 +135,28 @@ chmod +x /tmp/FIRMWARE_BANBEN
 
 # 获取云端固件
 y="${LUCI_EDITION}-${SOURCE}"
-for i in $(seq 1 100); do
+i=1
+max_retries=100  # 覆盖最大可能变量数
+while [ $i -le $max_retries ]; do
     var_name="R${i}"
-    x="${!var_name}"
-    [[ -z "${x}" ]] && continue
-    Firmware_name="$(
+    eval "x=\$$var_name"
+    if [ -z "$x" ]; then
+        i=$((i + 1))
+        continue
+    fi
+    
+    # 固件名称提取
+    Firmware_name=$(
         grep -Eo "${x}-${DEVICE_MODEL}-[0-9]+-${BOOT_TYPE}-.*${FIRMWARE_SUFFIX}" /tmp/api_version \
         | awk 'END {print}'
-    )"
+    )
     
-    if [[ -n "${Firmware_name}" ]] && [[ "${x}" != "${y}" ]]; then
-        echo "${Firmware_name}" >> /tmp/FIRMWARE_BANBEN
+    # 结果过滤与写入
+    if [ -n "$Firmware_name" ] && [ "$x" != "$y" ]; then
+        echo "$Firmware_name" >> /tmp/FIRMWARE_BANBEN
     fi
+    
+    i=$((i + 1))
 done
 
 if [[ ! -s "/tmp/FIRMWARE_BANBEN" ]]; then
