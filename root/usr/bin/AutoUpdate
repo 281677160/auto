@@ -15,7 +15,7 @@ else
   exit 1
 fi
 
-if ! wget --timeout=40 -t 1 "${RELEASE_DOWNLOAD1}/zzz_api" -O /tmp/api_version; then
+if ! wget --timeout=40 -t 1 --no-check-certificate "${RELEASE_DOWNLOAD1}/zzz_api" -O /tmp/api_version; then
   curl -fsSL --max-time 40 "${RELEASE_DOWNLOAD2}/zzz_api" -o /tmp/api_version
 fi
 
@@ -133,14 +133,14 @@ cd "${DOWNLOAD_PATH}"
 echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 开始下载云端固件]"
 if [[  "$(curl -I -s --connect-timeout 8 google.com -w %{http_code} | tail -n1)" == "301" ]]; then
   echo "${RELEASE_DOWNLOAD1}/${REMOTE_FIRMWARE}"
-  if ! wget -q --timeout=480 -t 1 ${RELEASE_DOWNLOAD1}/${REMOTE_FIRMWARE} -O ${REMOTE_FIRMWARE}; then
+  if ! wget -q --timeout=480 -t 1 --no-check-certificate ${RELEASE_DOWNLOAD1}/${REMOTE_FIRMWARE} -O ${REMOTE_FIRMWARE}; then
     if ! curl -fsSL --max-time 480 ${RELEASE_DOWNLOAD1}/${REMOTE_FIRMWARE} -o ${REMOTE_FIRMWARE}; then
       curl -fsSL --max-time 480 ${RELEASE_DOWNLOAD2}/${REMOTE_FIRMWARE} -o ${REMOTE_FIRMWARE}
     fi
   fi
 else
   echo "${RELEASE_DOWNLOAD1}/${REMOTE_FIRMWARE}"
-  if ! wget -q --timeout=480 -t 1 ${RELEASE_DOWNLOAD2}/${REMOTE_FIRMWARE} -O ${REMOTE_FIRMWARE}; then
+  if ! wget -q --timeout=480 -t 1 --no-check-certificate ${RELEASE_DOWNLOAD2}/${REMOTE_FIRMWARE} -O ${REMOTE_FIRMWARE}; then
     if ! curl -fsSL --max-time 480 ${RELEASE_DOWNLOAD1}/${REMOTE_FIRMWARE} -o ${REMOTE_FIRMWARE}; then
       curl -fsSL --max-time 480 ${RELEASE_DOWNLOAD2}/${REMOTE_FIRMWARE} -o ${REMOTE_FIRMWARE}
     fi
