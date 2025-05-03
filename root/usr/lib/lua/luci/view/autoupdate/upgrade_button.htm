@@ -1,68 +1,82 @@
 <%+cbi/valueheader%>
 <div class="cbi-value-field">
-    <input class="cbi-button cbi-button-apply" type="button" value="<%:Start Upgrade%>" 
-        onclick="confirmUpgrade()" />
-    <div id="upgrade-status" style="display: inline-block; margin-left: 10px;"></div>
+    <input class="cbi-button cbi-button-apply" type="button" value="<%:检查更新%>" 
+        onclick="startUpgradeProcess()" id="upgrade-btn" />
+    <div id="status-message" style="margin-left:10px;display:inline-block"></div>
 </div>
 <script type="text/javascript">
-var button = document.querySelector('.cbi-button-apply');
-var statusDiv = document.getElementById('upgrade-status');
+// 全局状态锁（防止重复提交）:ml-citation{ref="3,6" data="citationList"}
+let isProcessing = false;
 
-function setButtonState(disabled, text) {
-    button.disabled = disabled;
-    button.value = text;
-    statusDiv.textContent = '';
+function updateButtonState(disabled, text) {
+    const btn = document.getElementById('upgrade-btn');
+    btn.disabled = disabled;
+    btn.value = text;
 }
 
-function showStatus(message, isError) {
-    statusDiv.style.color = isError ? '#c44' : '#4c4';
-    statusDiv.textContent = message;
+function showStatus(text, isError) {
+    const statusDiv = document.getElementById('status-message');
+    statusDiv.style.color = isError ? '#d44' : '#4a4';
+    statusDiv.textContent = text;
 }
 
-function confirmUpgrade() {
-    setButtonState(true, '<%:Checking...%>');
-    
+function startUpgradeProcess() {
+    if (isProcessing) return;
+    isProcessing = true;
+    updateButtonState(true, '<%:检查中...%>');
+
     // 第一阶段：检查更新
     fetch('<%=url("admin/system/autoupdate/do_check")%>', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) throw new Error(`HTTP错误: ${response.status}`);
+        return response.json();
+    })
     .then(data => {
         if (!data.success) {
             showStatus(data.message, true);
-            setButtonState(false, '<%:Start Upgrade%>');
             return;
         }
         
-        if (data.has_update) {
-            if (confirm(data.message)) {
-                // 第二阶段：确认升级
-                setButtonState(true, '<%:Upgrading...%>');
-                performUpgrade();
-            } else {
-                setButtonState(false, '<%:Start Upgrade%>');
-            }
+        if (data.has_update && confirm(data.message)) {
+            // 第二阶段：执行升级
+            updateButtonState(true, '<%:升级中...%>');
+            performUpgrade();
         } else {
-            showStatus(data.message, false);
-            setButtonState(false, '<%:Start Upgrade%>');
+            showStatus(data.message, !data.has_update);
         }
+    })
+    .catch(error => {
+        showStatus(`网络请求失败: ${error}`, true);
+    })
+    .finally(() => {
+        isProcessing = false;
+        updateButtonState(false, '<%:检查更新%>');
     });
 }
 
+
 function performUpgrade() {
     fetch('<%=url("admin/system/autoupdate/do_upgrade")%>', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        method: 'POST'
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showStatus('<%:Upgrade started! Rebooting...%>', false);
-        } else {
-            showStatus(data.message, true);
-            setButtonState(false, '<%:Start Upgrade%>');
+    .then(response => {
+        if (response.status === 502) {  // 网关超时直接忽略:ml-citation{ref="5" data="citationList"}
+            showStatus("后台升级持续进行中...", false);
+            return;
         }
+        return response.json();
+    })
+    .then(data => {
+        if (data && data.success) {
+            showStatus(data.message, false);
+        }
+    })
+    .catch(() => { 
+        // 网络错误不中断进程:ml-citation{ref="2" data="citationList"}
+        showStatus("命令已提交，最终结果请查看日志", false);
     });
 }
 </script>
