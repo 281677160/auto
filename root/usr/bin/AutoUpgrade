@@ -183,11 +183,11 @@ TIME g " ******************************************************************"
 
 if [[ -n "${CLOUD_VERSION}" ]]; then
   if [[ "${LOCAL_VERSION}" -eq "${CLOUD_VERSION}" ]]; then
-    TIME b "提示：当前版本跟云端同类型固件版本是一致的"
+    TIME b "提示：当前版本跟云端同类型固件($y)，版本是一致的"
   elif [[ "${LOCAL_VERSION}" -lt "${CLOUD_VERSION}" ]]; then
-    TIME b "提示：云端同类型固件有更高版本固件,可进行更新操作"
+    TIME b "提示：云端同类型固件($y)，有更高版本固件,可进行更新操作"
   elif [[ "${LOCAL_VERSION}" -gt "${CLOUD_VERSION}" ]]; then
-    TIME b "提示：不得了啊,兄弟,云端最高版本固件,低于您现在所安装的版本"
+    TIME b "提示：不得了啊,兄弟,云端最高版本固件($y)，低于您现在所安装的版本"
   fi
 fi
 
@@ -216,7 +216,7 @@ done
 
 if [[ -n "$(echo "${REMOTE_FIRMWARE}" |grep -E "${y}")" ]]; then
   echo
-  TIME y "此固件跟您现在所用的固件为同类型固件"
+  TIME y "此固件跟您现在所用的固件为同类型固件($y)"
   TIME g "可以选择保留配置或不保留配置升级"
   echo
   xuzqxz="输入[Y/y]为保留配置，输入[N/n]为不保留配置"
