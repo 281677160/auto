@@ -4,12 +4,12 @@ function index()
     entry({"admin", "system", "autoupdate"}, cbi("autoupdate"), _("AutoUpdate"), 60)
     entry({"admin", "system", "autoupdate", "do_check"}, call("action_check")).leaf = true
     entry({"admin", "system", "autoupdate", "do_upgrade"}, call("action_upgrade")).leaf = true
-    entry({"admin", "system", "autoupdate", "check_status"}, call("action_check_status")).leaf = true  -- 新增状态检查接口
+    entry({"admin", "system", "autoupdate", "check_status"}, call("action_check_status")).leaf = true
 end
 
 -- 检查更新
 function action_check()
-    os.execute("rm -f /tmp/compare_version")
+    os.execute("rm -f /tmp/compare_version /tmp/autoupdate.lock /tmp/autoupgrade.pid")
     local check_result = luci.sys.call("AutoUpdate > /tmp/autoupdate.log 2>&1")
     
     local response = {}
