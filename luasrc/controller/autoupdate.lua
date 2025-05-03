@@ -10,7 +10,7 @@ end
 -- 检查更新
 function action_check()
     os.execute("rm -f /tmp/compare_version")
-    local check_result = luci.sys.call("AutoUpdate >> /tmp/autoupdate.log 2>&1")
+    local check_result = luci.sys.call("AutoUpdate > /tmp/autoupdate.log 2>&1")
     
     local response = {}
     if check_result == 1 then  -- 仅当AutoUpdate显式返回1时视为错误
@@ -32,7 +32,7 @@ function action_upgrade()
     os.execute("touch /tmp/autoupdate.lock 2>/dev/null")
     
     -- 使用子shell确保PID文件立即写入
-    os.execute("(AutoUpdate -u >> /tmp/autoupdate.log 2>&1 ; rm -f /tmp/autoupdate.lock) & echo $! > /tmp/autoupgrade.pid")
+    os.execute("(AutoUpdate -u > /tmp/autoupdate.log 2>&1 ; rm -f /tmp/autoupdate.lock) & echo $! > /tmp/autoupgrade.pid")
     
     -- 验证PID文件有效性
     local pid_file = io.open("/tmp/autoupgrade.pid", "r")
