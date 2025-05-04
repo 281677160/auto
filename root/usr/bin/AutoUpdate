@@ -1,223 +1,242 @@
 #!/bin/sh
-
+# https://github.com/Hyy2001X/AutoBuild-Actions
+# AutoBuild Module by Hyy2001
 # AutoUpdate for Openwrt
 # /usr/bin/AutoUpdate
-LOG_FILE="/tmp/autoupdate.log"
 
-# 函数：远程检测
+# 远程检测函数，检查必要文件和获取 API 数据
 Remote_detection() {
-  rm -rf /tmp/*_version
+    # 清理临时版本文件
+    rm -rf /tmp/*_version
 
-  if ! grep -q "GITHUB_LINK" "/etc/openwrt_update" || ! grep -q "RELEASE_DOWNLOAD" "/etc/openwrt_update"; then
-    echo "缺少openwrt_update文件" > /tmp/cloud_version
-    echo "$(date "+%Y年%m月%d日%H时%M分%S秒") 缺少openwrt_update文件"
-    exit 1
-  fi
+    # 检查 openwrt_update 文件是否包含必要信息
+    if grep -E "GITHUB_LINK" "/etc/openwrt_update" >/dev/null 2>&1 && \
+       grep -E "RELEASE_DOWNLOAD" "/etc/openwrt_update" >/dev/null 2>&1; then
+        . /etc/openwrt_update
+    else
+        echo "缺少openwrt_update文件" > /tmp/cloud_version
+        echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 缺少openwrt_update文件]"
+        exit 1
+    fi
 
-  source /etc/openwrt_update
+    # 尝试使用 wget 下载 API 数据
+    if ! wget --timeout=40 -t 1 --no-check-certificate "${RELEASE_DOWNLOAD1}/zzz_api" -O /tmp/api_version; then
+        # 若 wget 失败，使用 curl 下载
+        curl -fsSL --max-time 40 -k "${RELEASE_DOWNLOAD2}/zzz_api" -o /tmp/api_version
+    fi
 
-  if ! wget --timeout=40 -t 1 --no-check-certificate "${RELEASE_DOWNLOAD1}/zzz_api" -O /tmp/api_version; then
-    curl -fsSL --max-time 40 -k "${RELEASE_DOWNLOAD2}/zzz_api" -o /tmp/api_version
-  fi
-
-  if ! grep -q "assets" /tmp/api_version; then
-    echo "获取API数据失败,Github地址不正确或网络问题？" > /tmp/cloud_version
-    echo "$(date "+%Y年%m月%d日%H时%M分%S秒") 获取API数据失败,Github地址不正确或网络问题？"
-    exit 1
-  else
-    echo "$(date "+%Y年%m月%d日%H时%M分%S秒") 获取API数据成功！"
-  fi
+    # 检查 API 数据是否包含有效信息
+    if ! grep -E "assets" /tmp/api_version >/dev/null 2>&1; then
+        echo "获取API数据失败,Github地址不正确?，或此地址没云端存在，或您的仓库为私库，或网络抽风了再次尝试看看?" > /tmp/cloud_version
+        echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 获取API数据失败,Github地址不正确?，或此地址没云端存在，或您的仓库为私库，或网络抽风了再次尝试看看?]"
+        exit 1
+    else
+        echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 获取API数据成功!]"
+    fi
 }
 
-# 函数：远程信息获取
+# 远程信息函数，获取固件信息并进行版本比较
 Remote_information() {
-  source /etc/openwrt_update
+    . /etc/openwrt_update
 
-  BOOT_TYPE=""
-  if [ "${TARGET_BOARD}" = "x86" ]; then
-    if [ -d '/sys/firmware/efi' ]; then
-      BOOT_TYPE="uefi"
+    # 根据目标板和固件后缀确定引导类型
+    if [ "${TARGET_BOARD}" = "x86" ]; then
+        if [ -d '/sys/firmware/efi' ]; then
+            BOOT_TYPE=uefi
+        else
+            BOOT_TYPE=legacy
+        fi
+    elif [ "${FIRMWARE_SUFFIX}" = ".img.gz" ]; then
+        BOOT_TYPE=legacy
     else
-      BOOT_TYPE="legacy"
+        BOOT_TYPE=sysupgrade
     fi
-  elif [ "${FIRMWARE_SUFFIX}" = ".img.gz" ]; then
-    BOOT_TYPE="legacy"
-  else
-    BOOT_TYPE="sysupgrade"
-  fi
 
-  regex="https://.*${LUCI_EDITION}-${SOURCE}-${DEVICE_MODEL}-0-9]+-${BOOT_TYPE}-.*${FIRMWARE_SUFFIX}"
-  target_line=$(grep -E "$regex" /tmp/api_version | tail -n 1)
+    # 定义正则表达式以匹配固件信息
+    regex="https://.*${LUCI_EDITION}-${SOURCE}-${DEVICE_MODEL}-[0-9]+-${BOOT_TYPE}-.*${FIRMWARE_SUFFIX}"
+    # 查找匹配的目标行
+    target_line=$(grep -E "$regex" /tmp/api_version | tail -n 1)
+    if [ -n "$target_line" ]; then
+        # 从目标行中提取固件全名称
+        start_str="${LUCI_EDITION}-${SOURCE}-${DEVICE_MODEL}-"
+        REMOTE_FIRMWARE=$(echo "$target_line" | awk -v pattern="$regex" -v start="$start_str" -F'"' '{
+            for(i=1; i<=NF; i++) {
+                if($i ~ pattern) {
+                    print substr($i, index($i, start))
+                    break
+                }
+            }
+        }')
 
-  if [ -n "$target_line" ]; then
-    REMOTE_FIRMWARE=$(echo "$target_line" | sed -n "s/.*\"${LUCI_EDITION}-${SOURCE}-${DEVICE_MODEL}--9]+-${BOOT_TYPE}-//p" | sed "s/\".*//")
-    CLOUD_VERSION=$(echo "$REMOTE_FIRMWARE" | cut -d '-' -f 5)
-    CLOUD_MD256=$(echo "$REMOTE_FIRMWARE" | cut -d '-' -f 7 | cut -d '.' -f 1)
-    CLOUD_FIRMWARE_SIZE=$(grep -n "$REMOTE_FIRMWARE" /tmp/api_version | tail -1 | cut -d ':' -f 1 | xargs -I {} sed -n "{}p" /tmp/api_version | grep -Eo "0-9]+" | awk '{sum+=$1} END {print sum/1048576+1}')
+        # 提取云端版本号
+        CLOUD_VERSION=$(echo "$REMOTE_FIRMWARE" | grep -oE '[0-9]{10,}' | head -n 1)
+        # 提取云端固件的MD5值
+        CLOUD_MD256=$(echo "$REMOTE_FIRMWARE" | grep -oE "$BOOT_TYPE-([a-zA-Z0-9]{6})\\." | cut -d '-' -f 2 | cut -d '.' -f 1)
+        # 提取云端固件的大小
+        X=$(grep -n "$REMOTE_FIRMWARE" /tmp/api_version | tail -1 | cut -d : -f 1)
+        CLOUD_FIRMWARE_SIZE=$(expr $(sed -n "$((X - 4))p" /tmp/api_version | grep -Eo "[0-9]+" | awk '{print ($1)/1048576}' | awk -F. '{print $1}') + 1)
+        echo "固件全名称: $REMOTE_FIRMWARE"
+        echo "固件时间戳: $CLOUD_VERSION"
+        echo "固件MD5值: $CLOUD__MD256"
+        echo "大小 (MB): $CLOUD_FIRMWARE_SIZE"
+    else
+        echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 获取固件信息失败]"
+        exit 1
+    fi
 
-    echo "固件全名称: $REMOTE_FIRMWARE"
-    echo "固件时间戳: $CLOUD_VERSION"
-    echo "固件MD5值: $CLOUD_MD256"
-    echo "大小 (MB): $CLOUD_FIRMWARE_SIZE"
-  else
-    echo "$(date "+%Y年%m月%d日%H时%M分%S秒") 获取固件信息失败"
-    exit 1
-  fi
+    # 获取固件内核版本
+    KERNEL_MODE=$(uname -rs | cut -d ' ' -f2)
+    # 获取固件 /tmp 空间可用值
+    TMP_AVAILABLE=$(df -m | grep "/tmp" | awk '{print $4}' | awk 'NR==1' | awk -F. '{print $1}')
+    # 获取固件主机名称
+    EQUIPMENT_NAME=$(awk -F': ' '/model name/ {print $2; exit}' /proc/cpuinfo)
+    # 获取本地版本号
+    LOCAL_VERSION=$(echo "${FIRMWARE_VERSION}" | awk -F'-' '{print $NF}')
+    # 构建云端版本显示名称
+    CLOUD_FIRMWARE_VERSION="${SOURCE}-${DEVICE_MODEL}-${CLOUD_VERSION}"
 
-  KERNEL_MODE=$(uname -rs | awk '{print $2}')
-  TMP_AVAILABLE=$(df -m | grep "/tmp" | awk '{print $4}' | awk 'NR==1' | cut -d '.' -f 1)
-  EQUIPMENT_NAME=$(awk -F': ' '/model name/ {print $2; exit}' /proc/cpuinfo)
-  LOCAL_VERSION=$(echo "${FIRMWARE_VERSION}" | awk -F'-' '{print $NF}')
-  CLOUD_FIRMWARE_VERSION="${SOURCE}-${DEVICE_MODEL}-${CLOUD_VERSION}"
+    # 检查本地版本号是否获取成功
+    if [ -z "${LOCAL_VERSION}" ]; then
+        echo "未知原因,获取本地版本号失败!" > /tmp/cloud_version
+        echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 未知原因,获取本地版本号失败!]"
+        exit 1
+    else
+        echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 获取本地版本号成功!]"
+    fi
 
-  if [ -z "${LOCAL_VERSION}" ]; then
-    echo "未知原因,获取本地版本号失败!" > /tmp/cloud_version
-    echo "$(date "+%Y年%m月%d日%H时%M分%S秒") 未知原因,获取本地版本号失败!"
-    exit 1
-  else
-    echo "$(date "+%Y年%m月%d日%H时%M分%S秒") 获取本地版本号成功!"
-  fi
+    # 检查云端版本号是否获取成功
+    if [ -z "${CLOUD_VERSION}" ]; then
+        echo "获取云端信息失败,x86注意本地跟云端固件显示的引导模式是否一致,或者就是云端压根就没您同类型的固件存在,或者作者更了固件获取条件导致您本地跟云端信息不一致!" > /tmp/cloud_version
+        echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 获取云端信息失败,x86注意本地跟云端固件显示的引导模式是否一致,或者就是云端压根就没您同类型的固件存在,或者作者更了固件获取条件导致您本地跟云端信息不一致!]"
+        exit 1
+    else
+        echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 获取云端版本号成功!]"
+    fi
 
-  if [ -z "${CLOUD_VERSION}" ]; then
-    echo "获取云端信息失败,请检查云端固件是否存在或网络问题！" > /tmp/cloud_version
-    echo "$(date "+%Y年%m月%d日%H时%M分%S秒") 获取云端信息失败,请检查云端固件是否存在或网络问题！"
-    exit 1
-  else
-    echo "$(date "+%Y年%m月%d日%H时%M分%S秒") 获取云端版本号成功!"
-  fi
+    # 检查 /tmp 空间是否足够下载固件
+    if [ "$TMP_AVAILABLE" -lt "$CLOUD_FIRMWARE_SIZE" ]; then
+        echo "固件tmp空间值[${TMP_AVAILABLE}M],云端固件体积[${CLOUD_FIRMWARE_SIZE}M],路由器空间不足" > /tmp/cloud_version
+        echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 固件tmp空间值[${TMP_AVAILABLE}M],云端固件体积[${CLOUD_FIRMWARE_SIZE}M],路由器空间不足]"
+        exit 1
+    else
+        echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 固件tmp空间值[${TMP_AVAILABLE}M],云端固件体积[${CLOUD_FIRMWARE_SIZE}M]]"
+    fi
 
-  if [ "$TMP_AVAILABLE" -lt "$CLOUD_FIRMWARE_SIZE" ]; then
-    echo "固件tmp空间不足${TMP_AVAILABLE}M < ${CLOUD_FIRMWARE_SIZE}M]" > /tmp/cloud_version
-    echo "$(date "+%Y年%m月%d日%H时%M分%S秒") 固件tmp空间不足${TMP_AVAILABLE}M < ${CLOUD_FIRMWARE_SIZE}M]"
-    exit 1
-  else
-    echo "$(date "+%Y年%m月%d日%H时%M分%S秒") 固件tmp空间足够${TMP_AVAILABLE}M >= ${CLOUD_FIRMWARE_SIZE}M]"
-  fi
-
-  cat > /tmp/tags_version <<-EOF
+    # 生成标签版本文件
+    cat > /tmp/tags_version <<EOF
 MODEL_TYPE=${BOOT_TYPE}${FIRMWARE_SUFFIX}
 KERNEL_TYPE=${KERNEL_MODE} - ${LUCI_EDITION}
 EQUIPMENT_NAME=${EQUIPMENT_NAME}
 EOF
 
-  if [ -n "${LOCAL_VERSION}" ] && [ -n "${CLOUD_VERSION}" ]; then
-    if [ "$LOCAL_VERSION" -eq "$CLOUD_VERSION" ]; then
-      echo "${CLOUD_FIRMWARE_VERSION} 已是最新]" > /tmp/cloud_version
-      exit 0
-    elif [ "$LOCAL_VERSION" -lt "$CLOUD_VERSION" ]; then
-      echo "${CLOUD_FIRMWARE_VERSION} 有可更新固件]" > /tmp/cloud_version
-      echo "update" > /tmp/compare_version
-    elif [ "$LOCAL_VERSION" -gt "$CLOUD_VERSION" ]; then
-      echo "${CLOUD_FIRMWARE_VERSION} 云端版本低于当前版本]" > /tmp/cloud_version
-      exit 0
+    # 比较本地版本号和云端版本号
+    if [ -n "${LOCAL_VERSION}" ] && [ -n "${CLOUD_VERSION}" ]; then
+        if [ "$LOCAL_VERSION" -eq "$CLOUD_VERSION" ]; then
+            echo "${CLOUD_FIRMWARE_VERSION} [已是最新]" > /tmp/cloud_version
+            exit 0
+        elif [ "$LOCAL_VERSION" -lt "$CLOUD_VERSION" ]; then
+            echo "${CLOUD_FIRMWARE_VERSION} [有可更新固件]" > /tmp/cloud_version
+            echo "update" > /tmp/compare_version
+        elif [ "$LOCAL_VERSION" -gt "$CLOUD_VERSION" ]; then
+            echo "${CLOUD_FIRMWARE_VERSION} [云端最高版本固件,低于您现在所使用版本,请到云端查看原因]" > /tmp/cloud_version
+            exit 0
+        fi
     fi
-  fi
 }
 
+# 远程下载函数，下载固件并进行 MD5 校验和备份操作
 Remote_download() {
-  # 初始化下载目录
-  mkdir -p "${DOWNLOAD_PATH}" || { echo "创建目录失败"; exit 1; }
-  cd "${DOWNLOAD_PATH}" || exit 1
-  rm -rf ./*
-
-  # 统一日期格式
-  current_time=$(date "+%Y-%m-%d %H:%M:%S")
-  
-  # 网络检测优化
-  check_network() {
-    for site in "${RELEASE_DOWNLOAD1}" "${RELEASE_DOWNLOAD2}"; do
-      if curl -Is --connect-timeout 5 "${site}" >/dev/null; then
-        echo "${site}" && return 0
-      fi
-    done
-    return 1
-  }
-
-  # 获取可用下载源
-  if ! selected_site=$(check_network); then
-    echo "[${current_time}] 网络连接失败" | tee -a "${LOG_FILE}"
-    exit 1
-  fi
-
-  # 下载逻辑优化
-  download_file() {
-    for retry in 1 2 3; do
-      if wget --timeout=600 --tries=1 --no-check-certificate \
-        "${selected_site}/${REMOTE_FIRMWARE}" -O "${REMOTE_FIRMWARE}"; then
-        return 0
-      fi
-      sleep 5
-    done
-    return 1
-  }
-
-  # 执行下载
-  echo "[${current_time}] 开始下载: ${selected_site}/${REMOTE_FIRMWARE}" | tee -a "${LOG_FILE}"
-  if ! download_file; then
-    echo "[${current_time}] 下载失败" | tee -a "${LOG_FILE}"
-    exit 1
-  fi
-
-  # 哈希校验增强
-  verify_hash() {
-    local_md5=$(md5sum "${REMOTE_FIRMWARE}" | awk '{print $1}')
-    local_sha256=$(sha256sum "${REMOTE_FIRMWARE}" | awk '{print $1}')
-    
-    if [ "${CLOUD_MD256}" != "${local_md5}" ] || [ "${CLOUD_SHA256}" != "${local_sha256}" ]; then
-      return 1
-    fi
-    return 0
-  }
-
-  if ! verify_hash; then
-    echo "[${current_time}] 文件校验失败" | tee -a "${LOG_FILE}"
-    exit 1
-  fi
-
-  # 备份流程优化
-  create_backup() {
-    backup_file="/mnt/upback_$(date +%Y%m%d).tar.gz"
-    if sysupgrade -b "${backup_file}"; then
-      echo "${backup_file}"
+    # 创建下载目录并清理旧文件
+    if [ ! -d "${DOWNLOAD_PATH}" ]; then
+        mkdir -p "${DOWNLOAD_PATH}"
     else
-      # 关键配置备份
-      tar -czf "${backup_file}" /etc/config/ /etc/opkg/ 2>/dev/null
-      [ $? -eq 0 ] && echo "${backup_file}"
+        rm -rf "${DOWNLOAD_PATH}"/*
     fi
-  }
 
-  # 执行备份
-  echo "[${current_time}] 开始系统备份..." | tee -a "${LOG_FILE}"
-  backup_file=$(create_backup)
-  
-  # 升级命令生成
-  if [ -n "${backup_file}" ]; then
-    UPGRADE_CMD="sysupgrade -n -f ${backup_file}"
-  else
-    UPGRADE_CMD="sysupgrade -n"
-  fi
+    cd "${DOWNLOAD_PATH}"
+    echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 开始下载云端固件]"
 
-  # 执行升级
-  echo "[${current_time}] 启动固件升级..." | tee -a "${LOG_FILE}"
-  ${UPGRADE_CMD} "${REMOTE_FIRMWARE}"
+    # 检查网络连接
+    if [ "$(curl -I -s --connect-timeout 8 google.com -w %{http_code} | tail -n1)" = "301" ]; then
+        echo "${RELEASE_DOWNLOAD1}/${REMOTE_FIRMWARE}"
+        if ! wget --timeout=600 -t 1 --no-check-certificate "${RELEASE_DOWNLOAD2}/${REMOTE_FIRMWARE}" -O "${REMOTE_FIRMWARE}"; then
+            curl -L --max-time 600 -k "${RELEASE_DOWNLOAD1}/${REMOTE_FIRMWARE}" -o "${REMOTE_FIRMWARE}"
+        fi
+    else
+        echo "${RELEASE_DOWNLOAD1}/${REMOTE_FIRMWARE}"
+        if ! wget --timeout=600 -t 1 --no-check-certificate "${RELEASE_DOWNLOAD1}/${REMOTE_FIRMWARE}" -O "${REMOTE_FIRMWARE}"; then
+            curl -L --max-time 600 -k "${RELEASE_DOWNLOAD2}/${REMOTE_FIRMWARE}" -o "${REMOTE_FIRMWARE}"
+        fi
+    fi
+
+    # 检查下载是否成功
+    if [ $? -eq 0 ]; then
+        echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 云端固件下载成功]"
+    else
+        echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 云端固件下载失败]"
+        exit 1
+    fi
+
+    # 计算本地固件的 MD5 和 SHA256 组合值
+    LOCAL_MD5256=$(md5sum "${REMOTE_FIRMWARE}" | cut -c1-3)$(sha256sum "${REMOTE_FIRMWARE}" | cut -c1-3)
+    CLOUD__MD5256="${CLOUD__MD256}"
+
+    # 进行 MD5 校验
+    if [ "$CLOUD__MD5256" != "$LOCAL_MD5256" ]; then
+        echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") MD5对比失败,固件可能在下载时损坏,请检查网络后重试!]"
+        exit 1
+    else
+        echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") MD5对比成功]"
+    fi
+
+    echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 正在执行更新固件前的备份]"
+    chmod 755 "${REMOTE_FIRMWARE}"
+
+    # 移除 gzip 包
+    if opkg list | awk '{print $1}' | grep -E 'gzip' >/dev/null 2>&1; then
+        opkg remove gzip > /dev/null 2>&1
+    fi
+
+    # 执行删除文件操作
+    if [ -f "/etc/deletefile" ]; then
+        . /etc/deletefile
+    fi
+
+    # 清理配置文件
+    rm -rf /etc/config/luci /tmp/luci
+    # 添加定时任务
+    echo "*/5 * * * * sleep 240; sh /etc/networkdetection > /dev/null 2>&1" >> /etc/crontabs/root
+    # 重启 cron 服务
+    /etc/init.d/cron restart
+    # 备份系统
+    rm -rf /mnt/*upback.tar.gz
+    sysupgrade -b /mnt/upback.tar.gz
+
+    # 根据备份情况选择升级命令
+    if ls -1 /mnt | grep -E 'upback.tar.gz' >/dev/null 2>&1; then
+        UPGRADE_COMMAND='sysupgrade -F -f /mnt/upback.tar.gz'
+    else
+        UPGRADE_COMMAND='sysupgrade -F -q'
+    fi
+
+    echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 升级固件中，请勿断开路由器电源，END]"
+    echo "[EXIT CODE] $?" >> /tmp/autoupdate.log
+    ${UPGRADE_COMMAND} "${REMOTE_FIRMWARE}"
 }
 
-# 命令行处理
+# 根据命令行参数执行相应操作
 case "$1" in
-  "-u")  # 完整升级流程
-    Remote_detection
-    Remote_information
-    Remote_download
-    ;;
-  "-k")  # 快速升级模式
-    Remote_information
-    Remote_download
-    ;;
-  *)    # 默认检测模式
-    Remote_detection
-    Remote_information
-    ;;
-esac
-
-exit 0
-
+    "-u")
+        Remote_detection
+        Remote_information
+        Remote_download
+        ;;
+    "-k")
+        Remote_information
+        Remote_download
+        ;;
+    *)
+        Remote_detection
+        Remote_information
+        ;;
+esac    
