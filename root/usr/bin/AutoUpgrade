@@ -10,14 +10,14 @@ tmpapi_version="/tmp/api_version"
 function TIME() {
     case $1 in
        r)
-          echo -e "\033[31m$(date "+%Y年%m月%d日%H时%M分%S秒")(出错)\033[0m：\033[34m${2}\033[0m"
+          echo -e "\033[31m${2}\033[0m"
           exit 1
        ;;
        g)
-          echo -e "\033[32m$(date "+%Y年%m月%d日%H时%M分%S秒")\033[0m：\033[34m${2}\033[0m"
+          echo -e "\033[32m${2}\033[0m"
        ;;
        b)
-          echo -e "\033[33m${2}\033[0m"
+          echo -e "\033[34m${2}\033[0m"
        ;;
        y)
           echo -e "\033[33m${2}\033[0m"
@@ -120,6 +120,8 @@ Remote_information() {
             }
         }')
     fi
+    # 获取固件内核版本
+    KERNEL_MODE=$(uname -rs | cut -d ' ' -f2)
     # 提取云端版本号
     CLOUD_VERSION=$(echo "$MOTE_FIRMWARE" | awk -F'-' '{print $5}')
     # 提取云端版本号
@@ -171,10 +173,10 @@ Remote_information() {
     echo -e "\033[36m当前设备型号\033[0m：\033[32m${DEVICE_MODEL}\033[0m"
     echo
     TIME y "以下为可选升级固件："
-    TIME g " ******************************************************************" 
+    TIME b " ******************************************************************" 
         echo
         cat "$tmpfirmware_banben" |awk '$0=NR"、"$0'|awk '{print "  " $0}'
-    TIME g " ******************************************************************"
+    TIME b " ******************************************************************"
 
     if [[ -n "${CLOUD_VERSION}" ]]; then
       if [[ "${LOCAL_VERSION}" -eq "${CLOUD_VERSION}" ]]; then
@@ -208,7 +210,6 @@ Remote_information() {
           TIME r "敬告,请输入正确值"
       fi
     done
-
     # 提取云端固件的MD5值
     CLOUD_MD256=$(echo "$REMOTE_FIRMWARE" | grep -oE "$BOOT_TYPE-([a-zA-Z0-9]{6})\\." | cut -d '-' -f 2 | cut -d '.' -f 1)
     # 提取云端固件的大小
@@ -308,7 +309,6 @@ Remote_download() {
        if [ -f "/etc/deletefile" ]; then
            . /etc/deletefile
        fi
-
        # 清理配置文件
        rm -rf /etc/config/luci /tmp/luci
        # 添加定时任务
