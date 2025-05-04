@@ -14,6 +14,10 @@ function TIME() {
           echo
           exit 1
        ;;
+       z)
+          echo
+          echo -e "\033[31m${2}\033[0m"
+       ;;
        g)
           echo
           echo -e "\033[32m${2}\033[0m"
@@ -182,14 +186,15 @@ Remote_information() {
         cat "$tmpfirmware_banben" |awk '$0=NR"、"$0'|awk '{print "  " $0}'
     TIME b " ******************************************************************"
 
-    if [[ -n "${CLOUD_VERSION}" ]]; then
-      if [[ "${LOCAL_VERSION}" -eq "${CLOUD_VERSION}" ]]; then
-        TIME b "提示：当前版本跟云端同类型固件($y)，版本是一致的"
-      elif [[ "${LOCAL_VERSION}" -lt "${CLOUD_VERSION}" ]]; then
-        TIME b "提示：云端同类型固件($y)，有更高版本固件,可进行更新操作"
-      elif [[ "${LOCAL_VERSION}" -gt "${CLOUD_VERSION}" ]]; then
-        TIME b "提示：不得了啊,兄弟,云端最高版本固件($y)，低于您现在所安装的版本"
-      fi
+    # 比较本地版本号和云端版本号
+    if [ -n "${LOCAL_VERSION}" ] && [ -n "${CLOUD_VERSION}" ]; then
+        if [ "$LOCAL_VERSION" -eq "$CLOUD_VERSION" ]; then
+            TIME b "提示：当前版本跟云端同类型固件($y)，版本是一致的"
+        elif [ "$LOCAL_VERSION" -lt "$CLOUD_VERSION" ]; then
+            TIME b "提示：云端同类型固件($y)，有更高版本固件,可进行更新操作"
+        elif [ "$LOCAL_VERSION" -gt "$CLOUD_VERSION" ]; then
+            TIME b "提示：不得了啊,兄弟,云端最高版本固件($y)，低于您现在所安装的版本"
+        fi
     fi
 
     XYZDSZ="$(cat "$tmpfirmware_banben" |awk '$0=NR" "$0'| awk 'END {print}' |awk '{print $(1)}')"
@@ -199,19 +204,19 @@ Remote_information() {
       if [[ "${YMXZ}" =~ ^[Nn]$ ]]; then
           exit 0
       elif [[ -z "${YMXZ}" ]]; then
-          TIME r "敬告,输入不能为空"
+          TIME z "敬告,输入不能为空"
       elif [[ "${YMXZ}" == "0" ]]; then
-          TIME r "敬告,请输入正确数值(1~${XYZDSZ})" >&2
+          TIME z "敬告,请输入正确数值(1~${XYZDSZ})" >&2
       elif [[ "$YMXZ" =~ ^[0-9]+$ ]]; then
         if [[ "${YMXZ}" -le "${XYZDSZ}" ]]; then
           REMOTE_FIRMWARE=$(awk -v line="$YMXZ" 'NR == line {print; exit}' "$tmpfirmware_banben")
           TIME g "您选择了安装 ${REMOTE_FIRMWARE} 固件"
           break
         else
-          TIME r "敬告,请输入正确数值(1~${XYZDSZ})" >&2
+          TIME z "敬告,请输入正确数值(1~${XYZDSZ})" >&2
         fi
       else
-          TIME r "敬告,请输入正确值"
+          TIME z "敬告,请输入正确值"
       fi
     done
     # 提取云端固件的MD5值
