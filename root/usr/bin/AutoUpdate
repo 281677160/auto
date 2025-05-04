@@ -3,13 +3,15 @@
 # AutoBuild Module by Hyy2001
 # AutoUpdate for Openwrt
 # /usr/bin/AutoUpdate
+DOWNLOAD_PATH="/tmp/Downloads"
 tmpcloud_version="/tmp/cloud_version"
+tmpapi_version="/tmp/api_version"
 
 function TIME() {
     case $1 in
        r) 
           echo "${2}" > "$tmpcloud_version"
-          echo -e "\033[31m$(date "+%Y年%m月%d日%H时%M分%S秒")\033[0m：\033[34m${2}\033[0m"
+          echo -e "\033[31m$(date "+%Y年%m月%d日%H时%M分%S秒")(出错)\033[0m：\033[34m${2}\033[0m"
           exit 1
        ;;
        g)
@@ -43,13 +45,13 @@ Remote_detection() {
     fi
 
     # 尝试使用 wget 下载 API 数据
-    if ! wget --timeout=40 -t 1 --no-check-certificate "${RELEASE_DOWNLOAD1}/zzz_api" -O /tmp/api_version; then
+    if ! wget --timeout=40 -t 1 --no-check-certificate "${RELEASE_DOWNLOAD1}/zzz_api" -O "$tmpapi_version"; then
         # 若 wget 失败，使用 curl 下载
-        curl -fsSL --max-time 40 -k "${RELEASE_DOWNLOAD2}/zzz_api" -o /tmp/api_version
+        curl -fsSL --max-time 40 -k "${RELEASE_DOWNLOAD2}/zzz_api" -o "$tmpapi_version"
     fi
 
     # 检查 API 数据是否包含有效信息
-    if ! grep -E "assets" /tmp/api_version >/dev/null 2>&1; then
+    if ! grep -E "assets" "$tmpapi_version" >/dev/null 2>&1; then
         TIME r "获取API数据失败,Github地址不正确?，或此地址没云端存在，或您的仓库为私库，或网络抽风了再次尝试看看?"
     else
         TIME g "获取API数据成功!"
@@ -76,7 +78,7 @@ Remote_information() {
     # 定义正则表达式以匹配固件信息
     regex="https://.*${LUCI_EDITION}-${SOURCE}-${DEVICE_MODEL}-[0-9]+-${BOOT_TYPE}-.*${FIRMWARE_SUFFIX}"
     # 查找匹配的目标行
-    target_line=$(grep -E "$regex" /tmp/api_version | tail -n 1)
+    target_line=$(grep -E "$regex" "$tmpapi_version" | tail -n 1)
     if [ -n "$target_line" ]; then
         # 从目标行中提取固件全名称
         start_str="${LUCI_EDITION}-${SOURCE}-${DEVICE_MODEL}-"
@@ -94,8 +96,8 @@ Remote_information() {
         # 提取云端固件的MD5值
         CLOUD_MD256=$(echo "$REMOTE_FIRMWARE" | grep -oE "$BOOT_TYPE-([a-zA-Z0-9]{6})\\." | cut -d '-' -f 2 | cut -d '.' -f 1)
         # 提取云端固件的大小
-        X=$(grep -n "$REMOTE_FIRMWARE" /tmp/api_version | tail -1 | cut -d : -f 1)
-        CLOUD_FIRMWARE_SIZE=$(expr $(sed -n "$((X - 4))p" /tmp/api_version | grep -Eo "[0-9]+" | awk '{print ($1)/1048576}' | awk -F. '{print $1}') + 1)
+        X=$(grep -n "$REMOTE_FIRMWARE" "$tmpapi_version" | tail -1 | cut -d : -f 1)
+        CLOUD_FIRMWARE_SIZE=$(expr $(sed -n "$((X - 4))p" "$tmpapi_version" | grep -Eo "[0-9]+" | awk '{print ($1)/1048576}' | awk -F. '{print $1}') + 1)
         echo "固件全名称: $REMOTE_FIRMWARE"
         echo "固件时间戳: $CLOUD_VERSION"
         echo "固件MD5值: $CLOUD_MD256"
