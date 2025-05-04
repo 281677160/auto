@@ -104,8 +104,7 @@ Remote_information() {
         echo "固件MD5值: $CLOUD_MD256"
         echo "大小 (MB): $CLOUD_FIRMWARE_SIZE"
     else
-        echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 获取固件信息失败]"
-        exit 1
+        TIME r "获取固件信息失败"
     fi
 
     # 获取固件内核版本
