@@ -174,7 +174,7 @@ Remote_information() {
     TIME y "以下为可选升级固件："
     TIME g " ******************************************************************" 
         echo
-        cat /tmp/FIRMWARE_BANBEN |awk '$0=NR"、"$0'|awk '{print "  " $0}'
+        cat "$tmpfirmware_banben" |awk '$0=NR"、"$0'|awk '{print "  " $0}'
     TIME g " ******************************************************************"
 
     if [[ -n "${CLOUD_VERSION}" ]]; then
