@@ -112,7 +112,7 @@ Remote_information() {
         BOOT_TYPE=sysupgrade
     fi
 
-    # 定义正则表达式以匹配固件信息
+    # 获取云端该机在使用的同类型固件
     regex="https://.*${LUCI_EDITION}-${SOURCE}-${DEVICE_MODEL}-[0-9]+-${BOOT_TYPE}-.*${FIRMWARE_SUFFIX}"
     # 查找匹配的目标行
     target_line=$(grep -E "$regex" "$tmpapi_version" | tail -n 1)
@@ -140,7 +140,7 @@ Remote_information() {
        echo -n > "$tmpfirmware_banben"
     fi
 
-    # 获取云端固件
+    # 获取云端所有最新固件
     y="${LUCI_EDITION}-${SOURCE}"
     i=1
     max_retries=100  # 覆盖最大可能变量数
