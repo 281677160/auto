@@ -11,15 +11,19 @@ function TIME() {
     case $1 in
        r)
           echo -e "\033[31m${2}\033[0m"
+          echo
           exit 1
        ;;
        g)
+          echo
           echo -e "\033[32m${2}\033[0m"
        ;;
        b)
+          echo
           echo -e "\033[34m${2}\033[0m"
        ;;
        y)
+          echo
           echo -e "\033[33m${2}\033[0m"
        ;;
     esac
@@ -345,15 +349,12 @@ Remote_download() {
 # 根据命令行参数执行相应操作
 case "$1" in
     "-u")
+        Remote_githuburl
         Remote_detection
         Remote_information
         Remote_download
         ;;
-    "-k")
-        Remote_information
-        Remote_download
-        ;;
-    *)
+      *)
         Remote_detection
         Remote_information
         ;;
