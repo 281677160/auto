@@ -320,7 +320,7 @@ Remote_download() {
        # 清理配置文件
        rm -rf /etc/config/luci /tmp/luci
        # 添加定时任务
-       echo "*/5 * * * * sleep 240; sh /etc/networkdetection > /dev/null 2>&1" >> /etc/crontabs/root
+       echo "*/10 * * * * /etc/init.d/check_network check_network" >> /etc/crontabs/root
        # 重启 cron 服务
        /etc/init.d/cron restart
        # 备份系统
