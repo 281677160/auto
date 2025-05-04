@@ -166,7 +166,7 @@ Remote_information() {
     if [[ ! -s "$tmpfirmware_banben" ]]; then
       TIME r "没有获取到任何数据"
     else
-      TIME g "[$(date "+%Y年%m月%d日%H时%M分%S秒") 获取固件数据成功!]"
+      TIME g "获取固件数据成功!"
     fi
 
     clear
