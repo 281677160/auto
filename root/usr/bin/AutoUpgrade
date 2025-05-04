@@ -361,6 +361,7 @@ case "$1" in
         Remote_download
         ;;
       *)
+        Remote_githuburl
         Remote_detection
         Remote_information
         ;;
