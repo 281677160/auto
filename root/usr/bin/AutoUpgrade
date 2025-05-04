@@ -97,8 +97,6 @@ Remote_detection() {
 
 # 远程信息函数，获取固件信息并进行版本比较
 Remote_information() {
-    . /etc/openwrt_update
-
     # 根据目标板和固件后缀确定引导类型
     if [ "${TARGET_BOARD}" = "x86" ]; then
         if [ -d '/sys/firmware/efi' ]; then
