@@ -217,6 +217,8 @@ Remote_information() {
           TIME z "敬告,请输入正确值"
       fi
     done
+    # 获取固件 /tmp 空间可用值
+    TMP_AVAILABLE=$(df -m | grep "/tmp" | awk '{print $4}' | awk 'NR==1' | awk -F. '{print $1}')
     # 提取云端固件的MD5值
     CLOUD_MD256=$(echo "$REMOTE_FIRMWARE" | grep -oE "$BOOT_TYPE-([a-zA-Z0-9]{6})\\." | cut -d '-' -f 2 | cut -d '.' -f 1)
     # 提取云端固件的大小
@@ -225,8 +227,6 @@ Remote_information() {
     # 检查 /tmp 空间是否足够下载固件
     if [ "$TMP_AVAILABLE" -lt "$CLOUD_FIRMWARE_SIZE" ]; then
         TIME r "固件tmp空间值[${TMP_AVAILABLE}M],云端固件体积[${CLOUD_FIRMWARE_SIZE}M],路由器空间不足"
-    else
-        TIME g "固件tmp空间值[${TMP_AVAILABLE}M],云端固件体积[${CLOUD_FIRMWARE_SIZE}M],路由器空可下载固件"
     fi
 
     if [[ -n "$(echo "${REMOTE_FIRMWARE}" |grep -E "${y}")" ]]; then
@@ -270,7 +270,7 @@ Remote_download() {
     fi
 
     cd "${DOWNLOAD_PATH}"
-    TIME g "开始下载云端固件"
+    TIME y "开始下载云端固件"
 
     # 检查网络连接
     if [ "$(curl -I -s --connect-timeout 8 github.com -w %{http_code} | tail -n1)" = "301" ]; then
