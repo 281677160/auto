@@ -3,6 +3,30 @@
 # AutoBuild Module by Hyy2001
 # AutoUpdate for Openwrt
 # /usr/bin/AutoUpdate
+tmpcloud_version="/tmp/cloud_version"
+
+function TIME() {
+    case $1 in
+       r) 
+          echo "${2}" > "$tmpcloud_version"
+          echo -e "\033[31m$(date "+%Y年%m月%d日%H时%M分%S秒")\033[0m：\033[34m${2}\033[0m"
+          exit 1
+       ;;
+       g)
+          echo "${2}" > "$tmpcloud_version"
+          echo -e "\033[32m$(date "+%Y年%m月%d日%H时%M分%S秒")\033[0m：\033[34m${2}\033[0m"
+       ;;
+       z)
+          echo "${2}" > "$tmpcloud_version"
+          echo -e "\033[32m$(date "+%Y年%m月%d日%H时%M分%S秒")\033[0m：\033[34m${2}\033[0m"
+          exit 0
+       ;;
+       y)
+          echo "${2}" > "$tmpcloud_version"
+          echo "update" > /tmp/compare_version
+          echo -e "\033[32m$(date "+%Y年%m月%d日%H时%M分%S秒")\033[0m：\033[34m${2}\033[0m"
+    esac
+}
 
 # 远程检测函数，检查必要文件和获取 API 数据
 Remote_detection() {
@@ -14,9 +38,7 @@ Remote_detection() {
        grep -E "RELEASE_DOWNLOAD" "/etc/openwrt_update" >/dev/null 2>&1; then
         . /etc/openwrt_update
     else
-        echo "缺少openwrt_update文件" > /tmp/cloud_version
-        echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 缺少openwrt_update文件]"
-        exit 1
+        TIME r "缺少openwrt_update文件"
     fi
 
     # 尝试使用 wget 下载 API 数据
@@ -27,11 +49,9 @@ Remote_detection() {
 
     # 检查 API 数据是否包含有效信息
     if ! grep -E "assets" /tmp/api_version >/dev/null 2>&1; then
-        echo "获取API数据失败,Github地址不正确?，或此地址没云端存在，或您的仓库为私库，或网络抽风了再次尝试看看?" > /tmp/cloud_version
-        echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 获取API数据失败,Github地址不正确?，或此地址没云端存在，或您的仓库为私库，或网络抽风了再次尝试看看?]"
-        exit 1
+        TIME r "获取API数据失败,Github地址不正确?，或此地址没云端存在，或您的仓库为私库，或网络抽风了再次尝试看看?"
     else
-        echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 获取API数据成功!]"
+        TIME g "获取API数据成功!"
     fi
 }
 
@@ -97,29 +117,23 @@ Remote_information() {
 
     # 检查本地版本号是否获取成功
     if [ -z "${LOCAL_VERSION}" ]; then
-        echo "未知原因,获取本地版本号失败!" > /tmp/cloud_version
-        echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 未知原因,获取本地版本号失败!]"
-        exit 1
+        TIME r "未知原因,获取本地版本号失败!"
     else
-        echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 获取本地版本号成功!]"
+        TIME g "获取本地版本号成功!"
     fi
 
     # 检查云端版本号是否获取成功
     if [ -z "${CLOUD_VERSION}" ]; then
-        echo "获取云端信息失败,x86注意本地跟云端固件显示的引导模式是否一致,或者就是云端压根就没您同类型的固件存在,或者作者更了固件获取条件导致您本地跟云端信息不一致!" > /tmp/cloud_version
-        echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 获取云端信息失败,x86注意本地跟云端固件显示的引导模式是否一致,或者就是云端压根就没您同类型的固件存在,或者作者更了固件获取条件导致您本地跟云端信息不一致!]"
-        exit 1
+        TIME r "获取云端信息失败,x86注意本地跟云端固件显示的引导模式是否一致,或者就是云端压根就没您同类型的固件存在,或者作者更了固件获取条件导致您本地跟云端信息不一致!"
     else
-        echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 获取云端版本号成功!]"
+        TIME g "获取云端版本号成功!"
     fi
 
     # 检查 /tmp 空间是否足够下载固件
     if [ "$TMP_AVAILABLE" -lt "$CLOUD_FIRMWARE_SIZE" ]; then
-        echo "固件tmp空间值[${TMP_AVAILABLE}M],云端固件体积[${CLOUD_FIRMWARE_SIZE}M],路由器空间不足" > /tmp/cloud_version
-        echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 固件tmp空间值[${TMP_AVAILABLE}M],云端固件体积[${CLOUD_FIRMWARE_SIZE}M],路由器空间不足]"
-        exit 1
+        TIME r "固件tmp空间值[${TMP_AVAILABLE}M],云端固件体积[${CLOUD_FIRMWARE_SIZE}M],路由器空间不足"
     else
-        echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 固件tmp空间值[${TMP_AVAILABLE}M],云端固件体积[${CLOUD_FIRMWARE_SIZE}M]]"
+        TIME g "固件tmp空间值[${TMP_AVAILABLE}M],云端固件体积[${CLOUD_FIRMWARE_SIZE}M],路由器空可下载固件"
     fi
 
     # 生成标签版本文件
@@ -132,14 +146,11 @@ EOF
     # 比较本地版本号和云端版本号
     if [ -n "${LOCAL_VERSION}" ] && [ -n "${CLOUD_VERSION}" ]; then
         if [ "$LOCAL_VERSION" -eq "$CLOUD_VERSION" ]; then
-            echo "${CLOUD_FIRMWARE_VERSION} [已是最新]" > /tmp/cloud_version
-            exit 0
+            TIME z "${CLOUD_FIRMWARE_VERSION} [已是最新]"
         elif [ "$LOCAL_VERSION" -lt "$CLOUD_VERSION" ]; then
-            echo "${CLOUD_FIRMWARE_VERSION} [有可更新固件]" > /tmp/cloud_version
-            echo "update" > /tmp/compare_version
+            TIME y "${CLOUD_FIRMWARE_VERSION} [有可更新固件]"
         elif [ "$LOCAL_VERSION" -gt "$CLOUD_VERSION" ]; then
-            echo "${CLOUD_FIRMWARE_VERSION} [云端最高版本固件,低于您现在所使用版本,请到云端查看原因]" > /tmp/cloud_version
-            exit 0
+            TIME z "${CLOUD_FIRMWARE_VERSION} [云端最高版本固件,低于您现在所使用版本,请到云端查看原因"
         fi
     fi
 }
@@ -154,10 +165,10 @@ Remote_download() {
     fi
 
     cd "${DOWNLOAD_PATH}"
-    echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 开始下载云端固件]"
+    TIME g "开始下载云端固件"
 
     # 检查网络连接
-    if [ "$(curl -I -s --connect-timeout 8 google.com -w %{http_code} | tail -n1)" = "301" ]; then
+    if [ "$(curl -I -s --connect-timeout 8 github.com -w %{http_code} | tail -n1)" = "301" ]; then
         echo "${RELEASE_DOWNLOAD1}/${REMOTE_FIRMWARE}"
         if ! wget --timeout=600 -t 1 --no-check-certificate "${RELEASE_DOWNLOAD2}/${REMOTE_FIRMWARE}" -O "${REMOTE_FIRMWARE}"; then
             curl -L --max-time 600 -k "${RELEASE_DOWNLOAD1}/${REMOTE_FIRMWARE}" -o "${REMOTE_FIRMWARE}"
@@ -171,10 +182,9 @@ Remote_download() {
 
     # 检查下载是否成功
     if [ $? -eq 0 ]; then
-        echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 云端固件下载成功]"
+        TIME g "云端固件下载成功"
     else
-        echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 云端固件下载失败]"
-        exit 1
+        TIME r "云端固件下载失败"
     fi
 
     # 计算本地固件的 MD5 和 SHA256 组合值
@@ -183,13 +193,12 @@ Remote_download() {
 
     # 进行 MD5 校验
     if [ "$CLOUD_MD5256" != "$LOCAL_MD5256" ]; then
-        echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") MD5对比失败,固件可能在下载时损坏,请检查网络后重试!]"
-        exit 1
+        TIME r "MD5对比失败,固件可能在下载时损坏,请检查网络后重试!"
     else
-        echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") MD5对比成功]"
+        TIME g "MD5对比成功"
     fi
 
-    echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 正在执行更新固件前的备份]"
+    TIME g "正在执行更新固件前的备份"
     chmod 755 "${REMOTE_FIRMWARE}"
 
     # 移除 gzip 包
@@ -219,8 +228,7 @@ Remote_download() {
         UPGRADE_COMMAND='sysupgrade -F -q'
     fi
 
-    echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 升级固件中，请勿断开路由器电源，END]"
-    echo "[EXIT CODE] $?" >> /tmp/autoupdate.log
+    TIME g "升级固件中，请勿断开路由器电源，END"
     ${UPGRADE_COMMAND} "${REMOTE_FIRMWARE}"
 }
 
