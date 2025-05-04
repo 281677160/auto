@@ -77,7 +77,7 @@ Remote_information() {
         CLOUD_FIRMWARE_SIZE=$(expr $(sed -n "$((X - 4))p" /tmp/api_version | grep -Eo "[0-9]+" | awk '{print ($1)/1048576}' | awk -F. '{print $1}') + 1)
         echo "固件全名称: $REMOTE_FIRMWARE"
         echo "固件时间戳: $CLOUD_VERSION"
-        echo "固件MD5值: $CLOUD__MD256"
+        echo "固件MD5值: $CLOUD_MD256"
         echo "大小 (MB): $CLOUD_FIRMWARE_SIZE"
     else
         echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") 获取固件信息失败]"
@@ -179,10 +179,10 @@ Remote_download() {
 
     # 计算本地固件的 MD5 和 SHA256 组合值
     LOCAL_MD5256=$(md5sum "${REMOTE_FIRMWARE}" | cut -c1-3)$(sha256sum "${REMOTE_FIRMWARE}" | cut -c1-3)
-    CLOUD__MD5256="${CLOUD__MD256}"
+    CLOUD_MD5256="${CLOUD_MD256}"
 
     # 进行 MD5 校验
-    if [ "$CLOUD__MD5256" != "$LOCAL_MD5256" ]; then
+    if [ "$CLOUD_MD5256" != "$LOCAL_MD5256" ]; then
         echo "[$(date "+%Y年%m月%d日%H时%M分%S秒") MD5对比失败,固件可能在下载时损坏,请检查网络后重试!]"
         exit 1
     else
