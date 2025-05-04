@@ -36,6 +36,7 @@ Remote_detection() {
     # 检查 openwrt_update 文件是否包含必要信息
     if grep -E "GITHUB_LINK" "/etc/openwrt_update" >/dev/null 2>&1 && \
        grep -E "RELEASE_DOWNLOAD" "/etc/openwrt_update" >/dev/null 2>&1; then
+       chmod 755 /etc/openwrt_update
         . /etc/openwrt_update
     else
         TIME r "缺少openwrt_update文件"
