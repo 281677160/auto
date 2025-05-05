@@ -6,6 +6,7 @@
 DOWNLOAD_PATH="/tmp/Downloads"
 tmpcloud_version="/tmp/cloud_version"
 tmpapi_version="/tmp/api_version"
+rm -rf /tmp/autoupdate*
 
 function TIME() {
     date=$(date "+%Y年%m月%d日%H时%M分%S秒")
