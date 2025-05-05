@@ -8,25 +8,26 @@ tmpcloud_version="/tmp/cloud_version"
 tmpapi_version="/tmp/api_version"
 
 function TIME() {
+    date=$(date "+%Y年%m月%d日%H时%M分%S秒")
     case $1 in
        r) 
           echo "${2}" > "$tmpcloud_version"
-          echo -e "\033[31m$(date "+%Y年%m月%d日%H时%M分%S秒")(出错)\033[0m：\033[34m${2}\033[0m"
+          echo -e "\033[31m$date(出错)\033[0m：\033[34m${2}\033[0m"
           exit 1
        ;;
        g)
           echo "${2}" > "$tmpcloud_version"
-          echo -e "\033[32m$(date "+%Y年%m月%d日%H时%M分%S秒")\033[0m：\033[34m${2}\033[0m"
+          echo -e "\033[32m$date\033[0m：\033[34m${2}\033[0m"
        ;;
        z)
           echo "${2}" > "$tmpcloud_version"
-          echo -e "\033[32m$(date "+%Y年%m月%d日%H时%M分%S秒")\033[0m：\033[34m${2}\033[0m"
+          echo -e "\033[32m$date\033[0m：\033[34m${2}\033[0m"
           exit 0
        ;;
        y)
           echo "${2}" > "$tmpcloud_version"
           echo "update" > /tmp/compare_version
-          echo -e "\033[32m$(date "+%Y年%m月%d日%H时%M分%S秒")\033[0m：\033[34m${2}\033[0m"
+          echo -e "\033[32m$date\033[0m：\033[34m${2}\033[0m"
        ;;
     esac
 }
