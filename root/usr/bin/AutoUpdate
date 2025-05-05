@@ -46,6 +46,19 @@ Remote_detection() {
         TIME r "缺少openwrt_update文件"
     fi
 
+    if [ -f "/tmp/autoupgrade.pid" ]; then
+       PROCESS_ID=$(ps | grep "autoupdate" | grep -v grep | awk '{print $1}')
+       # 如果进程 ID 不为空，则发送 TERM 信号尝试正常终止进程
+       if [ -n "$PROCESS_ID" ]; then
+          kill $PROCESS_ID
+          sleep 2  # 等待 2 秒，让进程有时间清理资源
+          # 检查进程是否仍然存在，如果存在则发送 KILL 信号强制终止
+          if ps | grep "autoupdate" | grep -v grep > /dev/null; then
+             kill -9 $PROCESS_ID
+          fi
+       fi
+    fi
+
     # 尝试使用 wget 下载 API 数据
     if ! wget --timeout=40 -t 1 --no-check-certificate "${RELEASE_DOWNLOAD1}/zzz_api" -O "$tmpapi_version"; then
         # 若 wget 失败，使用 curl 下载
