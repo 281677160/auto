@@ -47,18 +47,7 @@ Remote_detection() {
     fi
 
     if [ -f "/tmp/autoupgrade.pid" ]; then
-       PROCESS_ID=$(ps | grep "autoupdate" | grep -v grep | awk '{print $1}')
-       # 如果进程 ID 不为空，则发送 TERM 信号尝试正常终止进程
-       if [ -n "$PROCESS_ID" ]; then
-          kill $PROCESS_ID
-          # 检查进程是否仍然存在，如果存在则发送 KILL 信号强制终止
-          if ps | grep "autoupdate" | grep -v grep > /dev/null; then
-             sleep 2 && kill -9 $PROCESS_ID
-          fi
-       fi
-
-       DOWNLOAD_TOOLS=("wget" "curl")
-       for tool in "${DOWNLOAD_TOOLS[@]}"; do
+       for tool in "wget" "curl" "autoupdate"; do
            # 获取使用该工具的进程 ID
            PROCESS_IDS=$(ps | grep "$tool" | grep -v grep | awk '{print $1}')
            # 如果找到进程 ID，则尝试结束进程
@@ -68,7 +57,7 @@ Remote_detection() {
                    kill $pid
                    # 检查进程是否仍然存在，如果存在则发送 KILL 信号强制终止
                    if ps | grep "$pid" | grep -v grep > /dev/null; then
-                       sleep 2 && kill -9 $pid
+                       kill -9 $pid
                    fi
                done
            fi
