@@ -51,10 +51,9 @@ Remote_detection() {
        # 如果进程 ID 不为空，则发送 TERM 信号尝试正常终止进程
        if [ -n "$PROCESS_ID" ]; then
           kill $PROCESS_ID
-          sleep 2  # 等待 2 秒，让进程有时间清理资源
           # 检查进程是否仍然存在，如果存在则发送 KILL 信号强制终止
           if ps | grep "autoupdate" | grep -v grep > /dev/null; then
-             kill -9 $PROCESS_ID
+             sleep 2 && kill -9 $PROCESS_ID
           fi
        fi
 
@@ -67,11 +66,9 @@ Remote_detection() {
                for pid in $PROCESS_IDS; do
                    # 先尝试发送 TERM 信号正常终止进程
                    kill $pid
-                   sleep 2  # 等待 2 秒，让进程有时间清理资源
-
                    # 检查进程是否仍然存在，如果存在则发送 KILL 信号强制终止
                    if ps | grep "$pid" | grep -v grep > /dev/null; then
-                       kill -9 $pid
+                       sleep 2 && kill -9 $pid
                    fi
                done
            fi
