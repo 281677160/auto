@@ -57,6 +57,25 @@ Remote_detection() {
              kill -9 $PROCESS_ID
           fi
        fi
+
+       DOWNLOAD_TOOLS=("wget" "curl")
+       for tool in "${DOWNLOAD_TOOLS[@]}"; do
+           # 获取使用该工具的进程 ID
+           PROCESS_IDS=$(ps | grep "$tool" | grep -v grep | awk '{print $1}')
+           # 如果找到进程 ID，则尝试结束进程
+           if [ -n "$PROCESS_IDS" ]; then
+               for pid in $PROCESS_IDS; do
+                   # 先尝试发送 TERM 信号正常终止进程
+                   kill $pid
+                   sleep 2  # 等待 2 秒，让进程有时间清理资源
+
+                   # 检查进程是否仍然存在，如果存在则发送 KILL 信号强制终止
+                   if ps | grep "$pid" | grep -v grep > /dev/null; then
+                       kill -9 $pid
+                   fi
+               done
+           fi
+       done
     fi
 
     # 尝试使用 wget 下载 API 数据
