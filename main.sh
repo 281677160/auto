@@ -151,7 +151,7 @@ function remove_package(){
        echo "-"
     done
     update_and_echo_free_space "before"
-    echo "🗃️ 正在删除多余的压缩软件包"
+    echo "🗃️ 正在删除多余的软件压缩包"
     sudo apt-get autoremove -y > /dev/null
     sudo apt-get clean > /dev/null
     update_and_echo_free_space "after"
