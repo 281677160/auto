@@ -131,6 +131,7 @@ function remove_haskell_library_folder(){
     echo "📚 正在删除Haskell文件夹"
     update_and_echo_free_space "before"
     sudo rm -rf /opt/ghc || true
+    sudo rm -rf /opt/hostedtoolcache/CodeQL || true
     sudo rm -rf /usr/local/.ghcup || true
     update_and_echo_free_space "after"
     echo "➖"
