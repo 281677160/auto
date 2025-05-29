@@ -67,9 +67,11 @@ if [[ ${PACKAGES} != "false" ]]; then
         exit 0
     fi
 fi
-if [[ -z "${REMOVE_FOLDERS}" ]]; then
-    echo "未设置REMOVE_FOLDERS变量"
-    exit 0
+if [[ ${REMOVE_FOLDERS} != "false" ]]; then
+    if [[ ${REMOVE_FOLDERS} != *" "* ]]; then
+        echo "PACKAGES变量不是字符串列表"
+        exit 0
+    fi
 fi
 if [[ -z "${AGENT_TOOLSDIRECTORY}" ]]; then
     echo "未设置AGENT_TOOLSDIRECTORY变量"
