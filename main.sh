@@ -67,10 +67,6 @@ if [[ ${PACKAGES} != "false" ]]; then
         exit 0
     fi
 fi
-if [[ -z "${REMOVE_ONE_COMMAND}" ]]; then
-    echo "未设置REMOVE_ONE_COMMAND变量"
-    exit 0
-fi
 if [[ -z "${REMOVE_FOLDERS}" ]]; then
     echo "未设置REMOVE_FOLDERS变量"
     exit 0
@@ -141,17 +137,6 @@ function remove_haskell_library_folder(){
 }
 
 function remove_package(){
-    PACKAGE_NAME=$1
-    echo "🗃️ 正在删除 ${PACKAGE_NAME}"
-    update_and_echo_free_space "before"
-    sudo apt-get remove -y "${PACKAGE_NAME}" --fix-missing > /dev/null
-    sudo apt-get autoremove -y > /dev/null
-    sudo apt-get clean > /dev/null
-    update_and_echo_free_space "after"
-    echo "➖"
-}
-
-function remove_multi_packages_one_command(){
     PACKAGES_TO_REMOVE=$1
     PACKAGES_ARRAY=($PACKAGES_TO_REMOVE)
     for PACKAGE in "${PACKAGES_ARRAY[@]}"; do
@@ -221,13 +206,7 @@ if [[ ${HASKELL_FILES} == "true" ]]; then
     remove_haskell_library_folder
 fi
 if [[ ${PACKAGES} != "false" ]]; then
-    if [[ ${REMOVE_ONE_COMMAND} == "true" ]]; then
-        remove_multi_packages_one_command "${PACKAGES}"
-    else
-        for PACKAGE in ${PACKAGES}; do
-            remove_package "${PACKAGE}"
-        done
-    fi
+    remove_package "${PACKAGES}"
 fi
 if [[ ${TOOL_CACHE} == "true" ]]; then
     remove_tool_cache
