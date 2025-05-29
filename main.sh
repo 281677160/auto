@@ -212,6 +212,11 @@ function remove_folder(){
     update_and_echo_free_space "after"
 }
 
+function free_up_space(){
+    echo "-"
+    echo "✅️ 总共释放空间: ${TOTAL_FREE_SPACE} MB"
+}
+
 # 删除库文件
 if [[ ${ANDROID_FILES} == "true" ]]; then
     remove_android_library_folder
@@ -245,5 +250,5 @@ if [[ ${REMOVE_FOLDERS} != "false" ]]; then
         remove_folder "${FOLDER}"
     done
 fi
-echo "➖"
-echo "✅️ 总共释放空间: ${TOTAL_FREE_SPACE} MB"
+
+free_up_space
