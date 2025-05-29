@@ -153,13 +153,14 @@ function remove_package(){
 
 function remove_multi_packages_one_command(){
     PACKAGES_TO_REMOVE=$1
-    MOUNT_COMMAND="sudo apt-get remove -y"
-    for PACKAGE in ${PACKAGES_TO_REMOVE}; do
-        MOUNT_COMMAND+=" ${PACKAGE}"
+    for x in "${PACKAGES_TO_REMOVE[@]}"; do
+       update_and_echo_free_space "before"
+       sudo apt-get remove -y $x
+       update_and_echo_free_space "after"
+       echo "-"
     done
-    echo "🗃️ 正在批量删除软件包: ${PACKAGES_TO_REMOVE}"
+
     update_and_echo_free_space "before"
-    ${MOUNT_COMMAND} --fix-missing > /dev/null
     sudo apt-get autoremove -y > /dev/null
     sudo apt-get clean > /dev/null
     update_and_echo_free_space "after"
