@@ -153,6 +153,7 @@ function remove_package(){
 
 function remove_multi_packages_one_command(){
     PACKAGES_TO_REMOVE=$1
+    echo "$PACKAGES_TO_REMOVE"
     for x in "${PACKAGES_TO_REMOVE[@]}"; do
        echo "🗃️ 正在删除软件包: $x"
        update_and_echo_free_space "before"
