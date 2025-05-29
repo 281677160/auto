@@ -157,7 +157,7 @@ function remove_multi_packages_one_command(){
     for PACKAGE in ${PACKAGES_TO_REMOVE}; do
         MOUNT_COMMAND+=" ${PACKAGE}"
     done
-    echo "📚 正在批量删除软件包: ${PACKAGES_TO_REMOVE}"
+    echo "🗃️ 正在批量删除软件包: ${PACKAGES_TO_REMOVE}"
     update_and_echo_free_space "before"
     ${MOUNT_COMMAND} --fix-missing > /dev/null
     sudo apt-get autoremove -y > /dev/null
@@ -167,7 +167,7 @@ function remove_multi_packages_one_command(){
 }
 
 function remove_tool_cache(){
-    echo "🪄 正在删除工具缓存"
+    echo "📇 正在删除工具缓存"
     update_and_echo_free_space "before"
     sudo rm -rf "${AGENT_TOOLSDIRECTORY}" || true
     update_and_echo_free_space "after"
@@ -176,7 +176,7 @@ function remove_tool_cache(){
 
 function remove_swap_storage(){
     # 眼睛表情查看交换空间
-    echo "🔍 查看交换空间"
+    echo "🔎 查看交换空间"
     free -h
     echo "🧹 正在删除交换空间"
     sudo swapoff -a || true
@@ -235,4 +235,4 @@ fi
 if [[ ${REMOVE_DOCKER} == "true" ]]; then
     remove_docker_image
 fi
-echo "总共释放空间: ${TOTAL_FREE_SPACE} MB"
+echo "✅️ 总共释放空间: ${TOTAL_FREE_SPACE} MB"
