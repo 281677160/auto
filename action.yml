@@ -39,10 +39,6 @@ inputs:
     description: "Remove Packages (Eg. azure-cli google-cloud-cli) Read the documentation for more information"
     required: false
     default: "false"
-  remove_packages_one_command:
-    description: "Remove Packages (Eg. azure-cli google-cloud-cli) in one command"
-    required: false
-    default: "false"
   remove_folders:
     description: "Remove Folders (Eg. /usr/share/dotnet)"
     required: false
@@ -72,6 +68,5 @@ runs:
         SWAP_STORAGE: ${{ inputs.remove_swap }}
         REMOVE_DOCKER: ${{ inputs.remove_docker }}
         PACKAGES: ${{ inputs.remove_packages }}
-        REMOVE_ONE_COMMAND: ${{ inputs.remove_packages_one_command }}
         REMOVE_FOLDERS: ${{ inputs.remove_folders }}
         TESTING: ${{ inputs.testing }}
