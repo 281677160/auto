@@ -116,7 +116,7 @@ function update_and_echo_free_space(){
 
 function remove_android_library_folder(){
     echo "-"
-    echo "🤖 正在删除Android文件夹"
+    echo "📚 正在删除Android文件夹"
     update_and_echo_free_space "before"
     sudo rm -rf /usr/local/lib/android || true
     update_and_echo_free_space "after"
@@ -124,7 +124,7 @@ function remove_android_library_folder(){
 }
 
 function remove_dot_net_library_folder(){
-    echo "📄 正在删除.NET文件夹"
+    echo "📚 正在删除.NET文件夹"
     update_and_echo_free_space "before"
     sudo rm -rf /usr/share/dotnet || true
     update_and_echo_free_space "after"
@@ -132,7 +132,7 @@ function remove_dot_net_library_folder(){
 }
 
 function remove_haskell_library_folder(){
-    echo "📄 正在删除Haskell文件夹"
+    echo "📚 正在删除Haskell文件夹"
     update_and_echo_free_space "before"
     sudo rm -rf /opt/ghc || true
     sudo rm -rf /usr/local/.ghcup || true
@@ -142,7 +142,7 @@ function remove_haskell_library_folder(){
 
 function remove_package(){
     PACKAGE_NAME=$1
-    echo "📦 正在删除 ${PACKAGE_NAME}"
+    echo "📚 正在删除 ${PACKAGE_NAME}"
     update_and_echo_free_space "before"
     sudo apt-get remove -y "${PACKAGE_NAME}" --fix-missing > /dev/null
     sudo apt-get autoremove -y > /dev/null
@@ -157,7 +157,7 @@ function remove_multi_packages_one_command(){
     for PACKAGE in ${PACKAGES_TO_REMOVE}; do
         MOUNT_COMMAND+=" ${PACKAGE}"
     done
-    echo "📦 正在批量删除软件包: ${PACKAGES_TO_REMOVE}"
+    echo "📚 正在批量删除软件包: ${PACKAGES_TO_REMOVE}"
     update_and_echo_free_space "before"
     ${MOUNT_COMMAND} --fix-missing > /dev/null
     sudo apt-get autoremove -y > /dev/null
@@ -167,7 +167,7 @@ function remove_multi_packages_one_command(){
 }
 
 function remove_tool_cache(){
-    echo "🧹 正在删除工具缓存"
+    echo "🪄 正在删除工具缓存"
     update_and_echo_free_space "before"
     sudo rm -rf "${AGENT_TOOLSDIRECTORY}" || true
     update_and_echo_free_space "after"
@@ -176,7 +176,7 @@ function remove_tool_cache(){
 
 function remove_swap_storage(){
     # 眼睛表情查看交换空间
-    echo "👁️‍🗨️ 查看交换空间"
+    echo "🔍 查看交换空间"
     free -h
     echo "🧹 正在删除交换空间"
     sudo swapoff -a || true
