@@ -142,9 +142,16 @@ function remove_haskell_library_folder(){
 
 function remove_package(){
     PACKAGE_NAME=$1
-    echo "📚 正在删除 ${PACKAGE_NAME}"
+    PACKAGES_ARRAY=($PACKAGE_NAME)
+    for PACKAGE in "${PACKAGES_ARRAY[@]}"; do
+       echo "🗃️ 正在删除软件: ${PACKAGE}"
+       update_and_echo_free_space "before"
+       sudo apt-get remove -y "${PACKAGE}" --fix-missing > /dev/null
+       update_and_echo_free_space "after"
+       echo "-"
+    done
     update_and_echo_free_space "before"
-    sudo apt-get remove -y "${PACKAGE_NAME}" --fix-missing > /dev/null
+    echo "🗃️ 正在删除多余的压缩软件包"
     sudo apt-get autoremove -y > /dev/null
     sudo apt-get clean > /dev/null
     update_and_echo_free_space "after"
@@ -153,18 +160,16 @@ function remove_package(){
 
 function remove_multi_packages_one_command(){
     PACKAGES_TO_REMOVE=$1
-    # 将字符串分割成数组
     PACKAGES_ARRAY=($PACKAGES_TO_REMOVE)
-
     for PACKAGE in "${PACKAGES_ARRAY[@]}"; do
-       echo "🗃️ 正在删除软件包: $PACKAGE"
+       echo "🗃️ 正在删除软件: ${PACKAGE}"
        update_and_echo_free_space "before"
-       sudo apt-get remove -y "$PACKAGE" --fix-missing > /dev/null
+       sudo apt-get remove -y "${PACKAGE}" --fix-missing > /dev/null
        update_and_echo_free_space "after"
        echo "-"
     done
-
     update_and_echo_free_space "before"
+    echo "🗃️ 正在删除多余的压缩软件包"
     sudo apt-get autoremove -y > /dev/null
     sudo apt-get clean > /dev/null
     update_and_echo_free_space "after"
