@@ -153,11 +153,13 @@ function remove_package(){
 
 function remove_multi_packages_one_command(){
     PACKAGES_TO_REMOVE=$1
-    echo "$PACKAGES_TO_REMOVE"
-    for x in "${PACKAGES_TO_REMOVE[@]}"; do
-       echo "🗃️ 正在删除软件包: $x"
+    # 将字符串分割成数组
+    PACKAGES_ARRAY=($PACKAGES_TO_REMOVE)
+
+    for PACKAGE in "${PACKAGES_ARRAY[@]}"; do
+       echo "🗃️ 正在删除软件包: $PACKAGE"
        update_and_echo_free_space "before"
-       sudo apt-get remove -y $x
+       sudo apt-get remove -y "$PACKAGE" --fix-missing > /dev/null
        update_and_echo_free_space "after"
        echo "-"
     done
