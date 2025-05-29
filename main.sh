@@ -235,4 +235,5 @@ if [[ ${REMOVE_FOLDERS} != "false" ]]; then
         remove_folder "${FOLDER}"
     done
 fi
+echo "-"
 echo "✅️ 总共释放空间: ${TOTAL_FREE_SPACE} MB"
