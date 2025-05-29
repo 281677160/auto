@@ -174,6 +174,14 @@ function remove_tool_cache(){
     echo "-"
 }
 
+function remove_docker_image(){
+    echo "💽 正在删除Docker镜像"
+    update_and_echo_free_space "before"
+    sudo docker image prune --all --force > /dev/null 2>&1
+    update_and_echo_free_space "after"
+    echo "-"
+}
+
 function remove_swap_storage(){
     # 眼睛表情查看交换空间
     echo "🔎 查看交换空间"
@@ -188,18 +196,10 @@ function remove_swap_storage(){
 
 function remove_folder(){
     FOLDER=$1
-    echo "📁 正在删除文件夹: ${FOLDER}"
+    echo "🗂️ 正在删除文件夹: ${FOLDER}"
     update_and_echo_free_space "before"
     sudo rm -rf "${FOLDER}" || true
     update_and_echo_free_space "after"
-}
-
-function remove_docker_image(){
-    echo "📁 正在删除Docker镜像"
-    update_and_echo_free_space "before"
-    sudo docker image prune --all --force > /dev/null 2>&1
-    update_and_echo_free_space "after"
-    echo "-"
 }
 
 # 删除库文件
@@ -224,6 +224,9 @@ fi
 if [[ ${TOOL_CACHE} == "true" ]]; then
     remove_tool_cache
 fi
+if [[ ${REMOVE_DOCKER} == "true" ]]; then
+    remove_docker_image
+fi
 if [[ ${SWAP_STORAGE} == "true" ]]; then
     remove_swap_storage
 fi
@@ -231,8 +234,5 @@ if [[ ${REMOVE_FOLDERS} != "false" ]]; then
     for FOLDER in ${REMOVE_FOLDERS}; do
         remove_folder "${FOLDER}"
     done
-fi
-if [[ ${REMOVE_DOCKER} == "true" ]]; then
-    remove_docker_image
 fi
 echo "✅️ 总共释放空间: ${TOTAL_FREE_SPACE} MB"
