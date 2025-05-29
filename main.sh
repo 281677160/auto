@@ -197,7 +197,7 @@ function remove_folder(){
 function remove_docker_image(){
     echo "📁 正在删除Docker镜像"
     update_and_echo_free_space "before"
-    sudo docker image prune --all --force
+    sudo docker image prune --all --force > /dev/null 2>&1
     update_and_echo_free_space "after"
     echo "-"
 }
