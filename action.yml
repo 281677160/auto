@@ -62,7 +62,6 @@ runs:
       run: |
         GITHUB_ACTION_PATH="${{ github.action_path }}"
         cd "$GITHUB_ACTION_PATH"
-        # 执行脚本
         chmod +x del.sh
         ./del.sh
       env:
