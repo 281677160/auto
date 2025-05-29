@@ -115,12 +115,12 @@ function update_and_echo_free_space(){
 }
 
 function remove_android_library_folder(){
-    echo "-"
+    echo "➖"
     echo "📚 正在删除Android文件夹"
     update_and_echo_free_space "before"
     sudo rm -rf /usr/local/lib/android || true
     update_and_echo_free_space "after"
-    echo "-"
+    echo "➖"
 }
 
 function remove_dot_net_library_folder(){
@@ -128,7 +128,7 @@ function remove_dot_net_library_folder(){
     update_and_echo_free_space "before"
     sudo rm -rf /usr/share/dotnet || true
     update_and_echo_free_space "after"
-    echo "-"
+    echo "➖"
 }
 
 function remove_haskell_library_folder(){
@@ -137,7 +137,7 @@ function remove_haskell_library_folder(){
     sudo rm -rf /opt/ghc || true
     sudo rm -rf /usr/local/.ghcup || true
     update_and_echo_free_space "after"
-    echo "-"
+    echo "➖"
 }
 
 function remove_package(){
@@ -148,14 +148,14 @@ function remove_package(){
        update_and_echo_free_space "before"
        sudo apt-get remove -y "${PACKAGE}" --fix-missing > /dev/null
        update_and_echo_free_space "after"
-       echo "-"
+       echo "➖"
     done
     update_and_echo_free_space "before"
     echo "🗃️ 正在删除多余的软件压缩包"
     sudo apt-get autoremove -y > /dev/null
     sudo apt-get clean > /dev/null
     update_and_echo_free_space "after"
-    echo "-"
+    echo "➖"
 }
 
 function remove_multi_packages_one_command(){
@@ -166,14 +166,14 @@ function remove_multi_packages_one_command(){
        update_and_echo_free_space "before"
        sudo apt-get remove -y "${PACKAGE}" --fix-missing > /dev/null
        update_and_echo_free_space "after"
-       echo "-"
+       echo "➖"
     done
     update_and_echo_free_space "before"
     echo "🗃️ 正在删除多余的软件压缩包"
     sudo apt-get autoremove -y > /dev/null
     sudo apt-get clean > /dev/null
     update_and_echo_free_space "after"
-    echo "-"
+    echo "➖"
 }
 
 function remove_tool_cache(){
@@ -181,7 +181,7 @@ function remove_tool_cache(){
     update_and_echo_free_space "before"
     sudo rm -rf "${AGENT_TOOLSDIRECTORY}" || true
     update_and_echo_free_space "after"
-    echo "-"
+    echo "➖"
 }
 
 function remove_docker_image(){
@@ -189,7 +189,7 @@ function remove_docker_image(){
     update_and_echo_free_space "before"
     sudo docker image prune --all --force > /dev/null 2>&1
     update_and_echo_free_space "after"
-    echo "-"
+    echo "➖"
 }
 
 function remove_swap_storage(){
@@ -201,7 +201,7 @@ function remove_swap_storage(){
     sudo rm -f "/mnt/swapfile" || true
     echo "🧹 已删除交换空间"
     free -h
-    echo "-"
+    echo "➖"
 }
 
 function remove_folder(){
@@ -245,5 +245,5 @@ if [[ ${REMOVE_FOLDERS} != "false" ]]; then
         remove_folder "${FOLDER}"
     done
 fi
-echo "-"
+echo "➖"
 echo "✅️ 总共释放空间: ${TOTAL_FREE_SPACE} MB"
