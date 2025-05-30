@@ -66,7 +66,7 @@ runs:
         remove_haskell: ${{ inputs.remove_haskell }}
         remove_tool_cache: ${{ inputs.remove_tool_cache }}
         remove_swap: ${{ inputs.remove_swap }}
-        remove_docker: ${{ inputs.remove_docker_image }}
+        remove_docker_image: ${{ inputs.remove_docker_image }}
         remove_packages: ${{ inputs.remove_packages }}
         remove_folders: ${{ inputs.remove_folders }}
         testing: ${{ inputs.testing }}
