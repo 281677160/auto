@@ -21,65 +21,56 @@
 
 # 环境变量
 # AGENT_TOOLSDIRECTORY: 字符串
-
-# 验证变量
-if [[ -z "${PRINCIPAL_DIR}" ]]; then
-    echo "未设置PRINCIPAL_DIR变量"
-    exit 0
-fi
-if [[ -z "${TESTING}" ]]; then
-    TESTING="false"
-fi
-if [[ -z "${REMOVE_DOCKER}" ]]; then
-    REMOVE_DOCKER="false"
-fi
-if [[ ${TESTING} == "true" ]]; then
-    echo "测试模式"
-    alias rm='echo rm'
-fi
-if [[ -z "${ANDROID_FILES}" ]]; then
-    echo "未设置ANDROID_FILES变量"
-    exit 0
-fi
-if [[ -z "${DOTNET_FILES}" ]]; then
-    echo "未设置DOTNET_FILES变量"
-    exit 0
-fi
-if [[ -z "${HASKELL_FILES}" ]]; then
-    echo "未设置HASKELL_FILES变量"
-    exit 0
-fi
-if [[ -z "${TOOL_CACHE}" ]]; then
-    echo "未设置TOOL_CACHE变量"
-    exit 0
-fi
-if [[ -z "${SWAP_STORAGE}" ]]; then
-    echo "未设置SWAP_STORAGE变量"
-    exit 0
-fi
-if [[ -z "${PACKAGES}" ]]; then
-    echo "未设置PACKAGES变量"
-    exit 0
-fi
-if [[ ${PACKAGES} != "false" ]]; then
-    if [[ ${PACKAGES} != *" "* ]]; then
-        echo "PACKAGES变量不是字符串列表"
-        exit 0
-    fi
-fi
-if [[ ${REMOVE_FOLDERS} != "false" ]]; then
-    if [[ ${REMOVE_FOLDERS} != *" "* ]]; then
-        echo "PACKAGES变量不是字符串列表"
-        exit 0
-    fi
-fi
-if [[ -z "${AGENT_TOOLSDIRECTORY}" ]]; then
-    echo "未设置AGENT_TOOLSDIRECTORY变量"
-    exit 0
-fi
-
 # 全局变量
 TOTAL_FREE_SPACE=0
+
+# 设置提示字体颜色
+INFO="[\033[94m 信息 \033[0m]"
+ERROR="[\033[91m 错误 \033[0m]"
+error_msg() {
+    echo -e "${ERROR} ${1}"
+    exit 1
+}
+
+# 验证变量
+function validate_boolean() {
+    local var="$1" param_name="$2"
+    if [[ ! "$var" =~ ^(true|false)$ ]]; then
+        error_msg "参数 $param_name 的值: $var 无效，必须是 'true' 或 'false'"
+    fi
+}
+
+function validate_packages() {
+    local var="$1" param_name="$2"
+    if [[ "$var" =~ ^(true|false)$ ]]; then
+        "$param_name"=""
+    fi
+}
+
+function init_var() {
+    validate_boolean "$remove_android" "remove_android"
+    validate_boolean "$remove_dotnet" "remove_dotnet"
+    validate_boolean "$remove_haskell" "remove_haskell"
+    validate_boolean "$remove_tool_cache" "remove_tool_cache"
+    validate_boolean "$remove_swap" "remove_swap"
+    validate_boolean "$remove_docker" "remove_docker"
+    validate_boolean "$testing" "testing"
+
+    validate_packages "$remove_packages" "remove_packages"
+    validate_packages "$remove_folders" "remove_folders"
+
+    echo -e ""
+    echo -e "${INFO} remove_android: [ ${remove_android} ]"
+    echo -e "${INFO} remove_dotnet: [ ${remove_dotnet} ]"
+    echo -e "${INFO} remove_haskell: [ ${remove_haskell} ]"
+    echo -e "${INFO} remove_tool_cache: [ ${remove_tool_cache} ]"
+    echo -e "${INFO} remove_swap: [ ${remove_swap} ]"
+    echo -e "${INFO} remove_docker: [ ${remove_docker} ]"
+    echo -e "${INFO} testing: [ ${testing} ]"
+    echo -e "${INFO} remove_packages: [ ${remove_packages} ]"
+    echo -e "${INFO} remove_folders: [ ${remove_folders} ]"
+    echo -e ""
+}
 
 # 验证所需软件包
 
@@ -187,10 +178,14 @@ function remove_swap_storage(){
 
 function remove_folder(){
     FOLDER=$1
-    echo "🗂️ 正在删除文件夹: ${FOLDER}"
-    update_and_echo_free_space "before"
-    sudo rm -rf "${FOLDER}" || true
-    update_and_echo_free_space "after"
+    PACKAGES_FOLDER=($FOLDER)
+    for FOLDER in "${PACKAGES_FOLDER[@]}"; do
+       echo "🗂️ 正在删除文件夹: ${FOLDER}"
+       update_and_echo_free_space "before"
+       sudo rm -rf "${FOLDER}" || true
+       update_and_echo_free_space "after"
+       echo "➖"
+    done
 }
 
 function free_up_space(){
@@ -198,32 +193,33 @@ function free_up_space(){
     echo "✅️ 总共释放空间: ${TOTAL_FREE_SPACE} MB"
 }
 
+# 依次执行相关操作
+init_var "${@}"
+
 # 删除库文件
-if [[ ${ANDROID_FILES} == "true" ]]; then
+if [[ ${remove_android} == "true" ]]; then
     remove_android_library_folder
 fi
-if [[ ${DOTNET_FILES} == "true" ]]; then
+if [[ ${remove_dotnet} == "true" ]]; then
     remove_dot_net_library_folder
 fi
-if [[ ${HASKELL_FILES} == "true" ]]; then
+if [[ ${remove_haskell} == "true" ]]; then
     remove_haskell_library_folder
 fi
-if [[ ${PACKAGES} != "false" ]]; then
-    remove_package "${PACKAGES}"
-fi
-if [[ ${TOOL_CACHE} == "true" ]]; then
+if [[ ${remove_tool_cache} == "true" ]]; then
     remove_tool_cache
 fi
-if [[ ${REMOVE_DOCKER} == "true" ]]; then
+if [[ ${remove_docker} == "true" ]]; then
     remove_docker_image
 fi
-if [[ ${SWAP_STORAGE} == "true" ]]; then
+if [[ ${remove_swap} == "true" ]]; then
     remove_swap_storage
 fi
-if [[ ${REMOVE_FOLDERS} != "false" ]]; then
-    for FOLDER in ${REMOVE_FOLDERS}; do
-        remove_folder "${FOLDER}"
-    done
+if [[ -n "${remove_packages}" ]]; then
+    remove_package "${remove_packages}"
+fi
+if [[ -n "${remove_folders}" ]]; then
+    remove_folder "${remove_folders}"
 fi
 
 free_up_space
