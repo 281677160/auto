@@ -16,6 +16,7 @@ CURRENT_SWAP_SIZE=0
 # 设置提示字体颜色
 STEPS="[\033[93m 执行 \033[0m]"
 INFO="[\033[94m 信息 \033[0m]"
+NOTE="[\033[92m 结果 \033[0m]"
 ERROR="[\033[91m 错误 \033[0m]"
 error_msg() {
     echo -e "${ERROR} ${1}"
@@ -183,7 +184,7 @@ function remove_package(){
        echo "➖"
     done
     update_and_echo_free_space "disk" "before"
-    echo -e "${STEPS} 🧰 删除多余的软件压缩包"
+    echo -e "${STEPS} 👝 删除多余的软件压缩包"
     sudo apt-get autoremove -y > /dev/null
     sudo apt-get clean > /dev/null
     update_and_echo_free_space "disk" "after"
@@ -229,7 +230,7 @@ function remove_folder(){
 }
 
 function free_up_space(){
-    echo "✅️ 总共释放空间: $(awk -v disk="$TOTAL_FREE_SPACE" -v swap="$TOTAL_SWAP_SPACE" 'BEGIN{printf "%.2f", disk+swap}') MB"
+    echo -e "${NOTE} ☑️ 总共释放空间: $(awk -v disk="$TOTAL_FREE_SPACE" -v swap="$TOTAL_SWAP_SPACE" 'BEGIN{printf "%.2f", disk+swap}') MB"
 }
 
 # 验证变量
