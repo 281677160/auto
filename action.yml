@@ -38,11 +38,11 @@ inputs:
   remove_packages:
     description: "Remove Packages (Eg. azure-cli google-cloud-cli) Read the documentation for more information"
     required: false
-    default: "false"
+    default: ""
   remove_folders:
     description: "Remove Folders (Eg. /usr/share/dotnet)"
     required: false
-    default: "false"
+    default: ""
   testing:
     description: "Testing (Use to develop locally)"
     required: false
