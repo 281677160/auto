@@ -202,7 +202,9 @@ function remove_tool_cache(){
 function remove_docker_image(){
     echo -e "${STEPS} 💽 删除Docker镜像"
     update_and_echo_free_space "disk" "before"
-    docker rmi $(docker images -q)
+    curl -fsSl https://get.docker.com -o get-docker.sh
+    sudo sh get-docker.sh --uninstall
+    sudo rm get-docker.sh
     sudo rm -rf /var/lib/docker
     sudo rm /etc/docker/daemon.json
     sudo rm /lib/systemd/system/docker.service
