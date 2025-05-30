@@ -196,6 +196,8 @@ function remove_docker_image(){
 function remove_swap_storage(){
     echo "🧹 正在删除交换空间"
     update_and_echo_free_space "swap" "before"
+    # 在删除交换空间之前保存当前的交换空间大小
+    CURRENT_SWAP_SIZE=$(get_swap_space)
     sudo swapoff -a || true
     sudo rm -f "/mnt/swapfile" || true
     update_and_echo_free_space "swap" "after"
