@@ -150,7 +150,7 @@ function update_and_echo_free_space(){
     fi
 }
 
-function remove_android_library_folder(){
+function remove_android(){
     echo "➖"
     echo -e "${STEPS} 📚 删除Android文件夹"
     update_and_echo_free_space "disk" "before"
@@ -159,7 +159,7 @@ function remove_android_library_folder(){
     echo "➖"
 }
 
-function remove_dot_net_library_folder(){
+function remove_dotnet(){
     echo -e "${STEPS} 📚 删除.NET文件夹"
     update_and_echo_free_space "disk" "before"
     sudo rm -rf /usr/share/dotnet || true
@@ -167,7 +167,7 @@ function remove_dot_net_library_folder(){
     echo "➖"
 }
 
-function remove_haskell_library_folder(){
+function remove_haskell(){
     echo -e "${STEPS} 📚 删除Haskell文件夹"
     update_and_echo_free_space "disk" "before"
     sudo rm -rf /opt/ghc || true
@@ -177,7 +177,7 @@ function remove_haskell_library_folder(){
     echo "➖"
 }
 
-function remove_package(){
+function remove_packages(){
     PACKAGES_TO_REMOVE=$1
     PACKAGES_ARRAY=($PACKAGES_TO_REMOVE)
     for PACKAGE in "${PACKAGES_ARRAY[@]}"; do
@@ -211,7 +211,7 @@ function remove_docker_image(){
     echo "➖"
 }
 
-function remove_swap_storage(){
+function remove_swap(){
     echo -e "${STEPS} 🧹 删除交换空间"
     update_and_echo_free_space "swap" "before"
     CURRENT_SWAP_SIZE=$(get_swap_space)
@@ -221,10 +221,10 @@ function remove_swap_storage(){
     echo "➖"
 }
 
-function remove_folder(){
+function remove_folders(){
     FOLDER=$1
-    PACKAGES_FOLDER=($FOLDER)
-    for FOLDER in "${PACKAGES_FOLDER[@]}"; do
+    FILES_FOLDER=($FOLDER)
+    for FOLDER in "${FILES_FOLDER[@]}"; do
        echo -e "${STEPS} 📂 删除文件夹: ${FOLDER}"
        update_and_echo_free_space "disk" "before"
        sudo rm -rf "${FOLDER}" || true
@@ -242,13 +242,13 @@ init_var "${@}"
 
 # 删除库文件
 if [[ ${remove_android} == "true" ]]; then
-    remove_android_library_folder
+    remove_android
 fi
 if [[ ${remove_dotnet} == "true" ]]; then
-    remove_dot_net_library_folder
+    remove_dotnet
 fi
 if [[ ${remove_haskell} == "true" ]]; then
-    remove_haskell_library_folder
+    remove_haskell
 fi
 if [[ ${remove_tool_cache} == "true" ]]; then
     remove_tool_cache
@@ -257,13 +257,13 @@ if [[ ${remove_docker_image} == "true" ]]; then
     remove_docker_image
 fi
 if [[ ${remove_swap} == "true" ]]; then
-    remove_swap_storage
+    remove_swap
 fi
 if [[ -n "${remove_packages}" ]]; then
-    remove_package "${remove_packages}"
+    remove_packages "${remove_packages}"
 fi
 if [[ -n "${remove_folders}" ]]; then
-    remove_folder "${remove_folders}"
+    remove_folders "${remove_folders}"
 fi
 
 free_up_space
