@@ -43,8 +43,19 @@ function get_swap_space() {
     if [[ -z "$swap_size" ]]; then
         echo 0
     else
-        # 将字节转换为 KB
-        echo "$((swap_size / 1024))"
+        # 将带有单位的大小转换为纯数字（以 KB 为单位）
+        if [[ "$swap_size" =~ ^([0-9]+)([kMG])$ ]]; then
+            local value=${BASH_REMATCH[1]}
+            local unit=${BASH_REMATCH[2]}
+            case "$unit" in
+                k) echo "$value" ;;
+                M) echo $((value * 1024)) ;;
+                G) echo $((value * 1024 * 1024)) ;;
+                *) echo 0 ;;
+            esac
+        else
+            echo 0
+        fi
     fi
 }
 
