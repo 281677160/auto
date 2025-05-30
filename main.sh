@@ -91,7 +91,7 @@ function init_var() {
     validate_packages "$remove_folders" "remove_folders"
 
     # 设置系统路径
-    PRINCIPAL_DIR="$principal_dir"
+    PRINCIPAL_DIR="${principal_dir}"
 
     echo -e ""
     echo -e "${INFO} remove_android: [ ${remove_android} ]"
