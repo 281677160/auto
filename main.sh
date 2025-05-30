@@ -104,6 +104,7 @@ function init_var() {
     echo -e "${INFO} remove_packages: [ ${remove_packages} ]"
     echo -e "${INFO} remove_folders: [ ${remove_folders} ]"
     echo -e ""
+    echo "➖"
 }
 
 function verify_free_disk_space(){
@@ -151,7 +152,6 @@ function update_and_echo_free_space(){
 }
 
 function remove_android(){
-    echo "➖"
     echo -e "${STEPS} 📚 删除Android文件夹"
     update_and_echo_free_space "disk" "before"
     sudo rm -rf /usr/local/lib/android || true
