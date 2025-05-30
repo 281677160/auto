@@ -7,20 +7,6 @@
 # 灵感来源: https://github.com/jlumbroso/free-disk-space
 # ---
 
-# 变量
-# PRINCIPAL_DIR: 字符串
-# TESTING: 布尔值 (true 或 false)
-# ANDROID_FILES: 布尔值 (true 或 false)
-# DOTNET_FILES: 布尔值 (true 或 false)
-# HASKELL_FILES: 布尔值 (true 或 false)
-# TOOL_CACHE: 布尔值 (true 或 false)
-# SWAP_STORAGE: 布尔值 (true 或 false)
-# PACKAGES: 字符串 (以空格分隔)
-# REMOVE_ONE_COMMAND: 布尔值 (true 或 false)
-# REMOVE_FOLDERS: 字符串 (以空格分隔)
-
-# 环境变量
-# AGENT_TOOLSDIRECTORY: 字符串
 # 全局变量
 TOTAL_FREE_SPACE=0
 
@@ -32,7 +18,7 @@ error_msg() {
     exit 1
 }
 
-# 验证变量
+# 验证变量函数
 function validate_boolean() {
     local var="$1" param_name="$2"
     if [[ ! "$var" =~ ^(true|false)$ ]]; then
@@ -40,6 +26,7 @@ function validate_boolean() {
     fi
 }
 
+# 验证变量函数
 function validate_packages() {
     local var="$1" param_name="$2"
     if [[ "$var" =~ ^(true|false)$ ]]; then
@@ -47,7 +34,9 @@ function validate_packages() {
     fi
 }
 
+# 验证变量
 function init_var() {
+    # 参数验证 (true 或 false)
     validate_boolean "$remove_android" "remove_android"
     validate_boolean "$remove_dotnet" "remove_dotnet"
     validate_boolean "$remove_haskell" "remove_haskell"
@@ -56,9 +45,11 @@ function init_var() {
     validate_boolean "$remove_docker" "remove_docker"
     validate_boolean "$testing" "testing"
 
+    # 参数验证 (是否设置为true 或 false,是的话改成空值)
     validate_packages "$remove_packages" "remove_packages"
     validate_packages "$remove_folders" "remove_folders"
 
+    # 设置系统路径
     PRINCIPAL_DIR="$principal_dir"
 
     echo -e ""
@@ -73,8 +64,6 @@ function init_var() {
     echo -e "${INFO} remove_folders: [ ${remove_folders} ]"
     echo -e ""
 }
-
-# 验证所需软件包
 
 function verify_free_disk_space(){
     FREE_SPACE_TMP=$(df -B1 "${PRINCIPAL_DIR}")
@@ -194,7 +183,7 @@ function free_up_space(){
     echo "✅️ 总共释放空间: ${TOTAL_FREE_SPACE} MB"
 }
 
-# 依次执行相关操作
+# 验证变量
 init_var "${@}"
 
 # 删除库文件
