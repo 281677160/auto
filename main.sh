@@ -202,7 +202,7 @@ function remove_tool_cache(){
 function remove_docker_image(){
     echo -e "${STEPS} 💽 删除Docker镜像"
     update_and_echo_free_space "disk" "before"
-    docker rmi $(docker images -q) > /dev/null
+    sudo docker image prune --all --force > /dev/null 2>&1
     update_and_echo_free_space "disk" "after"
     echo "➖"
 }
