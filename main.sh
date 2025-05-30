@@ -37,13 +37,14 @@ function validate_packages() {
     fi
 }
 
-# 获取交换空间大小
+# 获取交换空间大小（以 KB 为单位）
 function get_swap_space() {
-    local swap_size=$(swapon --show=SIZE --noheadings --raw | awk '{sum+=$1} END {print sum}')
+    local swap_size=$(swapon --show=SIZE --noheadings --raw)
     if [[ -z "$swap_size" ]]; then
         echo 0
     else
-        echo "$swap_size"
+        # 将字节转换为 KB
+        echo "$((swap_size / 1024))"
     fi
 }
 
@@ -198,6 +199,7 @@ function remove_swap_storage(){
     update_and_echo_free_space "swap" "before"
     # 在删除交换空间之前保存当前的交换空间大小
     CURRENT_SWAP_SIZE=$(get_swap_space)
+    echo "当前交换空间大小: ${CURRENT_SWAP_SIZE} KB"
     sudo swapoff -a || true
     sudo rm -f "/mnt/swapfile" || true
     update_and_echo_free_space "swap" "after"
