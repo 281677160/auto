@@ -83,7 +83,7 @@ function init_var() {
     validate_boolean "$remove_haskell" "remove_haskell"
     validate_boolean "$remove_tool_cache" "remove_tool_cache"
     validate_boolean "$remove_swap" "remove_swap"
-    validate_boolean "$remove_docker" "remove_docker"
+    validate_boolean "$remove_docker_image" "remove_docker_image"
     validate_boolean "$testing" "testing"
 
     # 参数验证 (是否设置为true 或 false,是的话改成空值)
@@ -99,7 +99,7 @@ function init_var() {
     echo -e "${INFO} remove_haskell: [ ${remove_haskell} ]"
     echo -e "${INFO} remove_tool_cache: [ ${remove_tool_cache} ]"
     echo -e "${INFO} remove_swap: [ ${remove_swap} ]"
-    echo -e "${INFO} remove_docker: [ ${remove_docker} ]"
+    echo -e "${INFO} remove_docker_image: [ ${remove_docker_image} ]"
     echo -e "${INFO} testing: [ ${testing} ]"
     echo -e "${INFO} remove_packages: [ ${remove_packages} ]"
     echo -e "${INFO} remove_folders: [ ${remove_folders} ]"
