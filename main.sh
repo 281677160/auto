@@ -175,7 +175,7 @@ function remove_package(){
     PACKAGES_TO_REMOVE=$1
     PACKAGES_ARRAY=($PACKAGES_TO_REMOVE)
     for PACKAGE in "${PACKAGES_ARRAY[@]}"; do
-       echo "🗃️ 正在删除软件: ${PACKAGE}"
+       echo "🗃️ 正在移除软件: ${PACKAGE}"
        update_and_echo_free_space "disk" "before"
        sudo apt-get remove -y "${PACKAGE}" --fix-missing > /dev/null
        update_and_echo_free_space "disk" "after"
