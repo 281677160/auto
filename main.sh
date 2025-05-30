@@ -5,12 +5,13 @@
 # 作者: Enderson Menezes
 # 日期: 2024-02-16
 # 灵感来源: https://github.com/jlumbroso/free-disk-space
-# 修改: 增加交换空间释放量的计算
+# 修改: 改进交换空间释放量的计算
 # ---
 
 # 全局变量
 TOTAL_FREE_SPACE=0
 TOTAL_SWAP_SPACE=0
+CURRENT_SWAP_SIZE=0
 
 # 设置提示字体颜色
 INFO="[\033[94m 信息 \033[0m]"
@@ -44,6 +45,11 @@ function get_swap_space() {
     else
         echo "$swap_size"
     fi
+}
+
+# 将KB转换为MB
+function convert_kb_to_mb() {
+    awk -v kb="$1" 'BEGIN{printf "%.2f", kb/1024}'
 }
 
 # 将字节转换为MB
@@ -101,7 +107,8 @@ function update_and_echo_free_space(){
             SPACE_BEFORE=$(verify_free_space_in_mb)
             LINUX_TIMESTAMP_BEFORE=$(date +%s)
         elif [[ "${OPERATION}" == "swap" ]]; then
-            SWAP_BEFORE=$(get_swap_space)
+            # 保存当前交换空间大小
+            CURRENT_SWAP_SIZE=$(get_swap_space)
             LINUX_TIMESTAMP_BEFORE=$(date +%s)
         fi
     else
@@ -112,12 +119,14 @@ function update_and_echo_free_space(){
             echo "释放磁盘空间: ${FREEUP_SPACE} MB"
             TOTAL_FREE_SPACE=$(awk -v total="$TOTAL_FREE_SPACE" -v free="$FREEUP_SPACE" 'BEGIN{printf "%.2f", total+free}')
         elif [[ "${OPERATION}" == "swap" ]]; then
-            SWAP_AFTER=$(get_swap_space)
+            # 交换空间已经关闭，使用之前保存的CURRENT_SWAP_SIZE
             LINUX_TIMESTAMP_AFTER=$(date +%s)
             # 转换KB到MB
-            FREEUP_SPACE=$(awk -v after="$SWAP_AFTER" -v before="$SWAP_BEFORE" 'BEGIN{printf "%.2f", (before-after)/1024}')
+            FREEUP_SPACE=$(convert_kb_to_mb "$CURRENT_SWAP_SIZE")
             echo "释放交换空间: ${FREEUP_SPACE} MB"
             TOTAL_SWAP_SPACE=$(awk -v total="$TOTAL_SWAP_SPACE" -v free="$FREEUP_SPACE" 'BEGIN{printf "%.2f", total+free}')
+            # 重置CURRENT_SWAP_SIZE
+            CURRENT_SWAP_SIZE=0
         fi
         echo "耗时: $((LINUX_TIMESTAMP_AFTER - LINUX_TIMESTAMP_BEFORE)) 秒"
     fi
