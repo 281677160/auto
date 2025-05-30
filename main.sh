@@ -75,7 +75,7 @@ function init_var() {
 # 验证所需软件包
 
 function verify_free_disk_space(){
-    FREE_SPACE_TMP=$(df -B1 "${PRINCIPAL_DIR}")
+    FREE_SPACE_TMP=$(df -B1 "${principal_dir}")
     echo "${FREE_SPACE_TMP}" | awk 'NR==2 {print $4}'
 }
 
