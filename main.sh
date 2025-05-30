@@ -59,6 +59,8 @@ function init_var() {
     validate_packages "$remove_packages" "remove_packages"
     validate_packages "$remove_folders" "remove_folders"
 
+    PRINCIPAL_DIR="$principal_dir"
+
     echo -e ""
     echo -e "${INFO} remove_android: [ ${remove_android} ]"
     echo -e "${INFO} remove_dotnet: [ ${remove_dotnet} ]"
@@ -75,7 +77,7 @@ function init_var() {
 # 验证所需软件包
 
 function verify_free_disk_space(){
-    FREE_SPACE_TMP=$(df -B1 "${principal_dir}")
+    FREE_SPACE_TMP=$(df -B1 "${PRINCIPAL_DIR}")
     echo "${FREE_SPACE_TMP}" | awk 'NR==2 {print $4}'
 }
 
