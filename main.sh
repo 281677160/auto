@@ -156,14 +156,11 @@ function remove_docker_image(){
 }
 
 function remove_swap_storage(){
-    # 眼睛表情查看交换空间
-    echo "🔎 查看交换空间"
-    free -h
     echo "🧹 正在删除交换空间"
+    update_and_echo_free_space "before"
     sudo swapoff -a || true
     sudo rm -f "/mnt/swapfile" || true
-    echo "🧹 已删除交换空间"
-    free -h
+    update_and_echo_free_space "after"
     echo "➖"
 }
 
