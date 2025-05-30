@@ -1,72 +1,116 @@
-name: "Free Disk Space - Ubuntu Runners"
-description: "A Simple Action to Free Up Disk Space on GitHub Hosted Runners"
-author: "Enderson Menezes <mail@enderson.dev>"
-
-branding:
-  icon: "command"
-  color: "gray-dark"
-
+name: "delete-releases-workflows"
+author: "ophub"
+description: "Delete older releases and workflow runs"
 inputs:
-  principal_dir:
-    description: "Principal Directory Mount Point"
+  repo:
+    description: "Repo name in the form of <owner>/<repo>"
     required: false
-    default: "/"
-  remove_android:
-    description: "Remove Android Files"
+    default: "${{ github.repository }}"
+  delete_releases:
+    description: "Whether to delete releases records"
+    required: true
+    default: ""
+  delete_tags:
+    description: "Whether to delete associated tags"
     required: false
-    default: "false"
-  remove_dotnet:
-    description: "Remove .NET Files"
+    default: "true"
+  prerelease_option:
+    description: "Whether to differentiate pre-release"
     required: false
-    default: "false"
-  remove_haskell:
-    description: "Remove Haskell Files"
+    default: "all"
+  releases_keep_latest:
+    description: "How many latest releases to keep"
     required: false
-    default: "false"
-  remove_tool_cache:
-    description: "Remove Tool Cache"
-    required: false
-    default: "false"
-  remove_swap:
-    description: "Remove Swap"
-    required: false
-    default: "false"
-  remove_docker_image:
-    description: 'Removes cached Docker images. (frees ~3 GB)'
-    required: false
-    default: 'false'
-  remove_packages:
-    description: "Remove Packages (Eg. azure-cli google-cloud-cli) Read the documentation for more information"
+    default: "90"
+  releases_keep_keyword:
+    description: "Keyword of the keep releases"
     required: false
     default: ""
-  remove_folders:
-    description: "Remove Folders (Eg. /usr/share/dotnet)"
+  max_releases_fetch:
+    description: "Maximum number of releases to fetch in total"
+    required: false
+    default: "200"
+  delete_workflows:
+    description: "Whether to delete workflows records"
+    required: true
+    default: ""
+  workflows_keep_latest:
+    description: "How many latest workflow runs to keep"
+    required: false
+    default: "90"
+  workflows_keep_keyword:
+    description: "Keywords for keep workflows"
     required: false
     default: ""
-  testing:
-    description: "Testing (Use to develop locally)"
+  out_log:
+    description: "Output a list log for each step"
     required: false
     default: "false"
+  gh_token:
+    description: "Set the token"
+    required: true
+    default: ""
+  max_workflows_fetch:
+    description: "Maximum number of workflow runs to fetch in total"
+    required: false
+    default: "200"
 
 runs:
   using: "composite"
   steps:
     - shell: bash
-      name: "Free Disk Space"
-      id: free-disk-space
       run: |
-        ACTION_PATH="${{ github.action_path }}"
-        cd "$ACTION_PATH"
-        chmod +x main.sh
-        ./main.sh
-      env:
-        principal_dir: ${{ inputs.principal_dir }}
-        remove_android: ${{ inputs.remove_android }}
-        remove_dotnet: ${{ inputs.remove_dotnet }}
-        remove_haskell: ${{ inputs.remove_haskell }}
-        remove_tool_cache: ${{ inputs.remove_tool_cache }}
-        remove_swap: ${{ inputs.remove_swap }}
-        remove_docker_image: ${{ inputs.remove_docker_image }}
-        remove_packages: ${{ inputs.remove_packages }}
-        remove_folders: ${{ inputs.remove_folders }}
-        testing: ${{ inputs.testing }}
+        GITHUB_ACTION_PATH="${{ github.action_path }}"
+        cd "$GITHUB_ACTION_PATH"
+
+        # 所有应用参数，同时删除空白字符(包括空格、制表符和换行符)
+        delete_releases=$(echo "${{ inputs.delete_releases }}" | tr -d '[:space:]')
+        delete_tags=$(echo "${{ inputs.delete_tags }}" | tr -d '[:space:]')
+        prerelease_option=$(echo "${{ inputs.prerelease_option }}" | tr -d '[:space:]')
+        releases_keep_latest=$(echo "${{ inputs.releases_keep_latest }}" | tr -d '[:space:]')
+        releases_keep_keyword=$(echo "${{ inputs.releases_keep_keyword }}" | tr -d '[:space:]')
+        max_releases_fetch=$(echo "${{ inputs.max_releases_fetch }}" | tr -d '[:space:]')
+        delete_workflows=$(echo "${{ inputs.delete_workflows }}" | tr -d '[:space:]')
+        workflows_keep_latest=$(echo "${{ inputs.workflows_keep_latest }}" | tr -d '[:space:]')
+        workflows_keep_keyword=$(echo "${{ inputs.workflows_keep_keyword }}" | tr -d '[:space:]')
+        max_workflows_fetch=$(echo "${{ inputs.max_workflows_fetch }}" | tr -d '[:space:]')
+        out_log=$(echo "${{ inputs.out_log }}" | tr -d '[:space:]')
+        repo=$(echo "${{ inputs.repo }}" | tr -d '[:space:]}')
+        gh_token="${{ inputs.gh_token }}"
+
+        # 错误提示颜色
+        ERROR="[\033[91m ERROR \033[0m]"
+        error_msg() {
+            echo -e "${ERROR} ${1}"
+            exit 0
+        }
+
+        # 验证必需参数,如果参数为空则会停止脚本运行
+        [[ -z "${gh_token}" ]] && error_msg "必须设置 [ gh_token ] 参数，且参数为正确密钥"
+        [[ -z "${delete_releases}" ]] && error_msg "必须设置 [ delete_releases ] 参数，且参数为 'true' 或 'false'"
+        [[ -z "${delete_workflows}" ]] && error_msg "必须设置 [ delete_workflows ] 参数，且参数为 'true' 或 'false'"
+        [[ ! -f "del.sh" ]] && error_msg "未知原因，找不到 [ del.sh ] 执行文件"
+
+        # 构建命令行参数
+        make_command=""
+        [[ -n "${repo}" ]] && make_command="${make_command} -r ${repo}"
+        [[ -n "${delete_releases}" ]] && make_command="${make_command} -a ${delete_releases}"
+        [[ -n "${delete_tags}" ]] && make_command="${make_command} -t ${delete_tags}"
+        [[ -n "${prerelease_option}" ]] && make_command="${make_command} -p ${prerelease_option}"
+        [[ -n "${releases_keep_latest}" ]] && make_command="${make_command} -l ${releases_keep_latest}"
+        [[ -n "${releases_keep_keyword}" ]] && make_command="${make_command} -w ${releases_keep_keyword}"
+        [[ -n "${max_releases_fetch}" ]] && make_command="${make_command} -c ${max_releases_fetch}"
+        [[ -n "${delete_workflows}" ]] && make_command="${make_command} -s ${delete_workflows}"
+        [[ -n "${workflows_keep_latest}" ]] && make_command="${make_command} -d ${workflows_keep_latest}"
+        [[ -n "${workflows_keep_keyword}" ]] && make_command="${make_command} -k ${workflows_keep_keyword}"
+        [[ -n "${max_workflows_fetch}" ]] && make_command="${make_command} -h ${max_workflows_fetch}"
+        [[ -n "${gh_token}" ]] && make_command="${make_command} -g ${gh_token}"
+        [[ -n "${out_log}" ]] && make_command="${make_command} -o ${out_log}"
+
+        # 执行脚本
+        chmod +x del.sh
+        ./del.sh ${make_command}
+
+branding:
+  icon: "terminal"
+  color: "gray-dark"
