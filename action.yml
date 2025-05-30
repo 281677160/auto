@@ -2,10 +2,6 @@ name: "delete-releases-workflows"
 author: "ophub"
 description: "Delete older releases and workflow runs"
 inputs:
-  github_workspace:
-    description: "Path to the workspace"
-    required: false
-    default: "${{ github.workspace }}"
   repo:
     description: "Repo name in the form of <owner>/<repo>"
     required: false
@@ -81,7 +77,7 @@ runs:
         out_log=$(echo "${{ inputs.out_log }}" | tr -d '[:space:]')
         repo=$(echo "${{ inputs.repo }}" | tr -d '[:space:]}')
         gh_token="${{ inputs.gh_token }}"
-        github_workspace="${{ github_workspace }}"
+        github_workspace="${GITHUB_WORKSPACE}"
 
         # 错误提示颜色
         ERROR="[\033[91m ERROR \033[0m]"
