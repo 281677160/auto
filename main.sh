@@ -14,7 +14,7 @@ TOTAL_SWAP_SPACE=0
 CURRENT_SWAP_SIZE=0
 
 # 设置提示字体颜色
-STEPS="[\033[95m 步骤 \033[0m]"
+STEPS="[\033[93m 执行 \033[0m]"
 INFO="[\033[94m 信息 \033[0m]"
 ERROR="[\033[91m 错误 \033[0m]"
 error_msg() {
@@ -147,7 +147,7 @@ function update_and_echo_free_space(){
 
 function remove_android_library_folder(){
     echo "➖"
-    echo -e "${STEPS}📚 正在删除Android文件夹"
+    echo -e "${STEPS} 📚 删除Android文件夹"
     update_and_echo_free_space "disk" "before"
     sudo rm -rf /usr/local/lib/android || true
     update_and_echo_free_space "disk" "after"
@@ -155,7 +155,7 @@ function remove_android_library_folder(){
 }
 
 function remove_dot_net_library_folder(){
-    echo -e "${STEPS}📚 正在删除.NET文件夹"
+    echo -e "${STEPS} 📚 删除.NET文件夹"
     update_and_echo_free_space "disk" "before"
     sudo rm -rf /usr/share/dotnet || true
     update_and_echo_free_space "disk" "after"
@@ -163,7 +163,7 @@ function remove_dot_net_library_folder(){
 }
 
 function remove_haskell_library_folder(){
-    echo "📚 正在删除Haskell文件夹"
+    echo -e "${STEPS} 📚 删除Haskell文件夹"
     update_and_echo_free_space "disk" "before"
     sudo rm -rf /opt/ghc || true
     sudo rm -rf /opt/hostedtoolcache/CodeQL || true
@@ -176,14 +176,14 @@ function remove_package(){
     PACKAGES_TO_REMOVE=$1
     PACKAGES_ARRAY=($PACKAGES_TO_REMOVE)
     for PACKAGE in "${PACKAGES_ARRAY[@]}"; do
-       echo -e "${STEPS}🗃️ 正在移除软件: ${PACKAGE}"
+       echo -e "${STEPS} 🗃️ 移除软件: ${PACKAGE}"
        update_and_echo_free_space "disk" "before"
        sudo apt-get remove -y "${PACKAGE}" --fix-missing > /dev/null
        update_and_echo_free_space "disk" "after"
        echo "➖"
     done
     update_and_echo_free_space "disk" "before"
-    echo "🧰 正在删除多余的软件压缩包"
+    echo -e "${STEPS} 🧰 删除多余的软件压缩包"
     sudo apt-get autoremove -y > /dev/null
     sudo apt-get clean > /dev/null
     update_and_echo_free_space "disk" "after"
@@ -191,7 +191,7 @@ function remove_package(){
 }
 
 function remove_tool_cache(){
-    echo -e "${STEPS}📇 正在删除工具缓存"
+    echo -e "${STEPS} 📇 删除工具缓存"
     update_and_echo_free_space "disk" "before"
     sudo rm -rf "${AGENT_TOOLSDIRECTORY}" || true
     update_and_echo_free_space "disk" "after"
@@ -199,7 +199,7 @@ function remove_tool_cache(){
 }
 
 function remove_docker_image(){
-    echo -e "${STEPS}💽 正在删除Docker镜像"
+    echo -e "${STEPS} 💽 删除Docker镜像"
     update_and_echo_free_space "disk" "before"
     sudo docker image prune --all --force > /dev/null 2>&1
     update_and_echo_free_space "disk" "after"
@@ -207,7 +207,7 @@ function remove_docker_image(){
 }
 
 function remove_swap_storage(){
-    echo -e "${STEPS}🧹 正在删除交换空间"
+    echo -e "${STEPS} 🧹 删除交换空间"
     update_and_echo_free_space "swap" "before"
     CURRENT_SWAP_SIZE=$(get_swap_space)
     sudo swapoff -a || true
@@ -220,7 +220,7 @@ function remove_folder(){
     FOLDER=$1
     PACKAGES_FOLDER=($FOLDER)
     for FOLDER in "${PACKAGES_FOLDER[@]}"; do
-       echo -e "${STEPS}📂 正在删除文件夹: ${FOLDER}"
+       echo -e "${STEPS} 📂 删除文件夹: ${FOLDER}"
        update_and_echo_free_space "disk" "before"
        sudo rm -rf "${FOLDER}" || true
        update_and_echo_free_space "disk" "after"
