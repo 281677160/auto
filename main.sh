@@ -191,7 +191,6 @@ function remove_folder(){
 }
 
 function free_up_space(){
-    echo "➖"
     echo "✅️ 总共释放空间: ${TOTAL_FREE_SPACE} MB"
 }
 
