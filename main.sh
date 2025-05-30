@@ -2,10 +2,14 @@
 
 # ---
 # 用于Linux系统的磁盘空间清理脚本
-# 作者: Enderson Menezes
+# 原作者: Enderson Menezes
 # 日期: 2024-02-16
 # 灵感来源: https://github.com/jlumbroso/free-disk-space
-# 修改: 改进交换空间释放量的计算
+# ---
+# 由281677160二次修改，修改内容如下
+# 1、改进释放磁盘空间放量的计算
+# 2、改进交换空间释放量的计算
+# 3、增加删除Docker镜像
 # ---
 
 # 全局变量
