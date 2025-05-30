@@ -158,8 +158,29 @@ function remove_docker_image(){
 function remove_swap_storage(){
     echo "🧹 正在删除交换空间"
     update_and_echo_free_space "before"
+    
+    # 获取当前交换空间的大小（以MB为单位）
+    SWAP_BEFORE=$(grep -oP 'SwapTotal: \K\d+' /proc/meminfo)
+    SWAP_BEFORE_MB=$(awk -v bytes="$SWAP_BEFORE" 'BEGIN{printf "%.2f", bytes/1024}')
+    echo "当前交换空间大小: ${SWAP_BEFORE_MB} MB"
+
+    # 禁用所有交换空间
     sudo swapoff -a || true
     sudo rm -f "/mnt/swapfile" || true
+
+    # 获取删除后的交换空间大小
+    SWAP_AFTER=$(grep -oP 'SwapTotal: \K\d+' /proc/meminfo)
+    SWAP_AFTER_MB=$(awk -v bytes="$SWAP_AFTER" 'BEGIN{printf "%.2f", bytes/1024}')
+    echo "删除后交换空间大小: ${SWAP_AFTER_MB} MB"
+
+    # 计算释放的交换空间大小
+    SWAP_FREED=$(awk -v before="$SWAP_BEFORE_MB" -v after="$SWAP_AFTER_MB" 'BEGIN{printf "%.2f", before-after}')
+    echo "释放的交换空间: ${SWAP_FREED} MB"
+
+    # 更新总释放空间
+    TOTAL_FREE_SPACE=$(awk -v total="$TOTAL_FREE_SPACE" -v free="$SWAP_FREED" 'BEGIN{printf "%.2f", total+free}')
+    echo "总释放空间: ${TOTAL_FREE_SPACE} MB"
+
     update_and_echo_free_space "after"
     echo "➖"
 }
