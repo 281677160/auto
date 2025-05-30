@@ -30,7 +30,7 @@ function validate_boolean() {
 function validate_packages() {
     local var="$1" param_name="$2"
     if [[ "$var" =~ ^(true|false)$ ]]; then
-        "${param_name}"=""
+        declare -g "$param_name"=""
     fi
 }
 
