@@ -47,10 +47,6 @@ inputs:
     description: "Testing (Use to develop locally)"
     required: false
     default: "false"
-  remove_packages_one_command:
-    description: "Remove Packages (Eg. azure-cli google-cloud-cli) in one command"
-    required: false
-    default: "false"
 
 runs:
   using: "composite"
