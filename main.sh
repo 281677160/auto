@@ -253,7 +253,7 @@ fi
 if [[ ${remove_tool_cache} == "true" ]]; then
     remove_tool_cache
 fi
-if [[ ${remove_docker} == "true" ]]; then
+if [[ ${remove_docker_image} == "true" ]]; then
     remove_docker_image
 fi
 if [[ ${remove_swap} == "true" ]]; then
