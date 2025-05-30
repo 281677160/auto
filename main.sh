@@ -5,10 +5,12 @@
 # 作者: Enderson Menezes
 # 日期: 2024-02-16
 # 灵感来源: https://github.com/jlumbroso/free-disk-space
+# 修改: 增加交换空间释放量的计算
 # ---
 
 # 全局变量
 TOTAL_FREE_SPACE=0
+TOTAL_SWAP_SPACE=0
 
 # 设置提示字体颜色
 INFO="[\033[94m 信息 \033[0m]"
@@ -32,6 +34,21 @@ function validate_packages() {
     if [[ "$var" =~ ^(true|false)$ ]]; then
         declare -g "$param_name"=""
     fi
+}
+
+# 获取交换空间大小
+function get_swap_space() {
+    local swap_size=$(swapon --show=SIZE --noheadings --raw | awk '{sum+=$1} END {print sum}')
+    if [[ -z "$swap_size" ]]; then
+        echo 0
+    else
+        echo "$swap_size"
+    fi
+}
+
+# 将字节转换为MB
+function convert_bytes_to_mb() {
+    awk -v bytes="$1" 'BEGIN{printf "%.2f", bytes/1024/1024}'
 }
 
 # 验证变量
@@ -70,54 +87,66 @@ function verify_free_disk_space(){
     echo "${FREE_SPACE_TMP}" | awk 'NR==2 {print $4}'
 }
 
-function convert_bytes_to_mb(){
-    awk -v bytes="$1" 'BEGIN{printf "%.2f", bytes/1024/1024}'
-}
-
 function verify_free_space_in_mb(){
     DATA_TO_CONVERT=$(verify_free_disk_space)
     convert_bytes_to_mb "${DATA_TO_CONVERT}"
 }
 
 function update_and_echo_free_space(){
-    IS_AFTER_OR_BEFORE=$1
+    OPERATION=$1
+    IS_AFTER_OR_BEFORE=$2
+    
     if [[ "${IS_AFTER_OR_BEFORE}" == "before" ]]; then
-        SPACE_BEFORE=$(verify_free_space_in_mb)
-        LINUX_TIMESTAMP_BEFORE=$(date +%s)
+        if [[ "${OPERATION}" == "disk" ]]; then
+            SPACE_BEFORE=$(verify_free_space_in_mb)
+            LINUX_TIMESTAMP_BEFORE=$(date +%s)
+        elif [[ "${OPERATION}" == "swap" ]]; then
+            SWAP_BEFORE=$(get_swap_space)
+            LINUX_TIMESTAMP_BEFORE=$(date +%s)
+        fi
     else
-        SPACE_AFTER=$(verify_free_space_in_mb)
-        LINUX_TIMESTAMP_AFTER=$(date +%s)
-        FREEUP_SPACE=$(awk -v after="$SPACE_AFTER" -v before="$SPACE_BEFORE" 'BEGIN{printf "%.2f", after-before}')
-        echo "释放空间: ${FREEUP_SPACE} MB"
+        if [[ "${OPERATION}" == "disk" ]]; then
+            SPACE_AFTER=$(verify_free_space_in_mb)
+            LINUX_TIMESTAMP_AFTER=$(date +%s)
+            FREEUP_SPACE=$(awk -v after="$SPACE_AFTER" -v before="$SPACE_BEFORE" 'BEGIN{printf "%.2f", after-before}')
+            echo "释放磁盘空间: ${FREEUP_SPACE} MB"
+            TOTAL_FREE_SPACE=$(awk -v total="$TOTAL_FREE_SPACE" -v free="$FREEUP_SPACE" 'BEGIN{printf "%.2f", total+free}')
+        elif [[ "${OPERATION}" == "swap" ]]; then
+            SWAP_AFTER=$(get_swap_space)
+            LINUX_TIMESTAMP_AFTER=$(date +%s)
+            # 转换KB到MB
+            FREEUP_SPACE=$(awk -v after="$SWAP_AFTER" -v before="$SWAP_BEFORE" 'BEGIN{printf "%.2f", (before-after)/1024}')
+            echo "释放交换空间: ${FREEUP_SPACE} MB"
+            TOTAL_SWAP_SPACE=$(awk -v total="$TOTAL_SWAP_SPACE" -v free="$FREEUP_SPACE" 'BEGIN{printf "%.2f", total+free}')
+        fi
         echo "耗时: $((LINUX_TIMESTAMP_AFTER - LINUX_TIMESTAMP_BEFORE)) 秒"
-        TOTAL_FREE_SPACE=$(awk -v total="$TOTAL_FREE_SPACE" -v free="$FREEUP_SPACE" 'BEGIN{printf "%.2f", total+free}')
     fi
 }
 
 function remove_android_library_folder(){
     echo "➖"
     echo "📚 正在删除Android文件夹"
-    update_and_echo_free_space "before"
+    update_and_echo_free_space "disk" "before"
     sudo rm -rf /usr/local/lib/android || true
-    update_and_echo_free_space "after"
+    update_and_echo_free_space "disk" "after"
     echo "➖"
 }
 
 function remove_dot_net_library_folder(){
     echo "📚 正在删除.NET文件夹"
-    update_and_echo_free_space "before"
+    update_and_echo_free_space "disk" "before"
     sudo rm -rf /usr/share/dotnet || true
-    update_and_echo_free_space "after"
+    update_and_echo_free_space "disk" "after"
     echo "➖"
 }
 
 function remove_haskell_library_folder(){
     echo "📚 正在删除Haskell文件夹"
-    update_and_echo_free_space "before"
+    update_and_echo_free_space "disk" "before"
     sudo rm -rf /opt/ghc || true
     sudo rm -rf /opt/hostedtoolcache/CodeQL || true
     sudo rm -rf /usr/local/.ghcup || true
-    update_and_echo_free_space "after"
+    update_and_echo_free_space "disk" "after"
     echo "➖"
 }
 
@@ -126,62 +155,41 @@ function remove_package(){
     PACKAGES_ARRAY=($PACKAGES_TO_REMOVE)
     for PACKAGE in "${PACKAGES_ARRAY[@]}"; do
        echo "🗃️ 正在删除软件: ${PACKAGE}"
-       update_and_echo_free_space "before"
+       update_and_echo_free_space "disk" "before"
        sudo apt-get remove -y "${PACKAGE}" --fix-missing > /dev/null
-       update_and_echo_free_space "after"
+       update_and_echo_free_space "disk" "after"
        echo "➖"
     done
-    update_and_echo_free_space "before"
+    update_and_echo_free_space "disk" "before"
     echo "🗃️ 正在删除多余的软件压缩包"
     sudo apt-get autoremove -y > /dev/null
     sudo apt-get clean > /dev/null
-    update_and_echo_free_space "after"
+    update_and_echo_free_space "disk" "after"
     echo "➖"
 }
 
 function remove_tool_cache(){
     echo "📇 正在删除工具缓存"
-    update_and_echo_free_space "before"
+    update_and_echo_free_space "disk" "before"
     sudo rm -rf "${AGENT_TOOLSDIRECTORY}" || true
-    update_and_echo_free_space "after"
+    update_and_echo_free_space "disk" "after"
     echo "➖"
 }
 
 function remove_docker_image(){
     echo "💽 正在删除Docker镜像"
-    update_and_echo_free_space "before"
+    update_and_echo_free_space "disk" "before"
     sudo docker image prune --all --force > /dev/null 2>&1
-    update_and_echo_free_space "after"
+    update_and_echo_free_space "disk" "after"
     echo "➖"
 }
 
 function remove_swap_storage(){
     echo "🧹 正在删除交换空间"
-    update_and_echo_free_space "before"
-    
-    # 获取当前交换空间的大小（以MB为单位）
-    SWAP_BEFORE=$(grep -oP 'SwapTotal: \K\d+' /proc/meminfo)
-    SWAP_BEFORE_MB=$(awk -v bytes="$SWAP_BEFORE" 'BEGIN{printf "%.2f", bytes/1024}')
-    echo "当前交换空间大小: ${SWAP_BEFORE_MB} MB"
-
-    # 禁用所有交换空间
+    update_and_echo_free_space "swap" "before"
     sudo swapoff -a || true
     sudo rm -f "/mnt/swapfile" || true
-
-    # 获取删除后的交换空间大小
-    SWAP_AFTER=$(grep -oP 'SwapTotal: \K\d+' /proc/meminfo)
-    SWAP_AFTER_MB=$(awk -v bytes="$SWAP_AFTER" 'BEGIN{printf "%.2f", bytes/1024}')
-    echo "删除后交换空间大小: ${SWAP_AFTER_MB} MB"
-
-    # 计算释放的交换空间大小
-    SWAP_FREED=$(awk -v before="$SWAP_BEFORE_MB" -v after="$SWAP_AFTER_MB" 'BEGIN{printf "%.2f", before-after}')
-    echo "释放的交换空间: ${SWAP_FREED} MB"
-
-    # 更新总释放空间
-    TOTAL_FREE_SPACE=$(awk -v total="$TOTAL_FREE_SPACE" -v free="$SWAP_FREED" 'BEGIN{printf "%.2f", total+free}')
-    echo "总释放空间: ${TOTAL_FREE_SPACE} MB"
-
-    update_and_echo_free_space "after"
+    update_and_echo_free_space "swap" "after"
     echo "➖"
 }
 
@@ -190,15 +198,17 @@ function remove_folder(){
     PACKAGES_FOLDER=($FOLDER)
     for FOLDER in "${PACKAGES_FOLDER[@]}"; do
        echo "🗂️ 正在删除文件夹: ${FOLDER}"
-       update_and_echo_free_space "before"
+       update_and_echo_free_space "disk" "before"
        sudo rm -rf "${FOLDER}" || true
-       update_and_echo_free_space "after"
+       update_and_echo_free_space "disk" "after"
        echo "➖"
     done
 }
 
 function free_up_space(){
-    echo "✅️ 总共释放空间: ${TOTAL_FREE_SPACE} MB"
+    echo "✅️ 总共释放磁盘空间: ${TOTAL_FREE_SPACE} MB"
+    echo "✅️ 总共释放交换空间: ${TOTAL_SWAP_SPACE} MB"
+    echo "✅️ 总共释放空间: $(awk -v disk="$TOTAL_FREE_SPACE" -v swap="$TOTAL_SWAP_SPACE" 'BEGIN{printf "%.2f", disk+swap}') MB"
 }
 
 # 验证变量
