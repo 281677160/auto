@@ -208,9 +208,7 @@ function remove_docker_image(){
 function remove_swap_storage(){
     echo "🧹 正在删除交换空间"
     update_and_echo_free_space "swap" "before"
-    # 在删除交换空间之前保存当前的交换空间大小
     CURRENT_SWAP_SIZE=$(get_swap_space)
-    echo "当前交换空间大小: ${CURRENT_SWAP_SIZE} KB"
     sudo swapoff -a || true
     sudo rm -f "/mnt/swapfile" || true
     update_and_echo_free_space "swap" "after"
@@ -230,8 +228,6 @@ function remove_folder(){
 }
 
 function free_up_space(){
-    echo "✅️ 总共释放磁盘空间: ${TOTAL_FREE_SPACE} MB"
-    echo "✅️ 总共释放交换空间: ${TOTAL_SWAP_SPACE} MB"
     echo "✅️ 总共释放空间: $(awk -v disk="$TOTAL_FREE_SPACE" -v swap="$TOTAL_SWAP_SPACE" 'BEGIN{printf "%.2f", disk+swap}') MB"
 }
 
