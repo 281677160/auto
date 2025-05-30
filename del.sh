@@ -78,6 +78,7 @@ init_var() {
             -h|--max_workflows_fetch) max_workflows_fetch="$2"; shift 2 ;;
             -g|--gh_token) gh_token="$2"; shift 2 ;;
             -o|--out_log) out_log="$2"; shift 2 ;;
+            -e|--github_workspace) github_workspace="$2"; shift 2 ;;
             *) error_msg "无效选项 [ $1 ]!"; shift ;;
         esac
     done
@@ -98,8 +99,8 @@ init_var() {
     validate_positive_integer "$max_workflows_fetch" "max_workflows_fetch" 1000
     
     # 在GitHub Actions环境中使用正确的临时目录
-    if [[ -n "$GITHUB_WORKSPACE" ]]; then
-        tmp_dir="$GITHUB_WORKSPACE/tmp"
+    if [[ -n "$github_workspace" ]]; then
+        tmp_dir="$github_workspace/tmp"
         mkdir -p "${tmp_dir}"
     else
         tmp_dir=$(mktemp -d)
