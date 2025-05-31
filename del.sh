@@ -412,7 +412,7 @@ get_workflows_list() {
         # 处理结果并追加到文件
         if [[ "$get_results_length" -gt 0 ]]; then
             # 将每一页的结果追加到 JSON 数组中
-            echo "${response}" | jq -c '.workflow_runs[] | select(.status != "in_progress") | {date: .updated_at, id: .id, name: .name}' | jq -s '. |= . + ['.']' -- "${all_workflows_list}" > "${all_workflows_list}.tmp" && mv "${all_workflows_list}.tmp" "${all_workflows_list}"
+            echo "${response}" | jq -c '.workflow_runs[] | select(.status != "in_progress") | {date: .updated_at, id: .id, name: .name}' | jq -s '. |= . + .' -- "${all_workflows_list}" > "${all_workflows_list}.tmp" && mv "${all_workflows_list}.tmp" "${all_workflows_list}"
         fi
     done
 
