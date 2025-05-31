@@ -212,36 +212,13 @@ filter_releases() {
 
     all_releases_list="${TMP_DIR}/A_all_releases_list.json"
     
-    # 根据预发布选项过滤(all/false/true)
-    if [[ -s "${all_releases_list}" ]]; then
-        if [[ "${prerelease_option}" == "all" ]]; then
-            echo -e "${NOTE} (1.4.1) 不过滤预发布选项，跳过"
-        elif [[ "${prerelease_option}" == "false" ]]; then
-            echo -e "${INFO} (1.4.2) 过滤预发布选项: [ false ]"
-            jq -c 'select(.prerelease == false)' "${all_releases_list}" > "${all_releases_list}.tmp"
-            mv "${all_releases_list}.tmp" "${all_releases_list}"
-        elif [[ "${prerelease_option}" == "true" ]]; then
-            echo -e "${INFO} (1.4.3) 过滤预发布选项: [ true ]"
-            jq -c 'select(.prerelease == true)' "${all_releases_list}" > "${all_releases_list}.tmp"
-            mv "${all_releases_list}.tmp" "${all_releases_list}"
-        fi
-        
-        if [[ "${out_log}" == "true" ]]; then
-            if [[ -s "${all_releases_list}" ]]; then
-                echo -e "${DISPLAY} (1.4.4) 当前发布列表:"
-                cat "${all_releases_list}" | jq -c .
-                echo -e ""
-            else
-                echo -e "${NOTE} (1.4.5) 发布列表为空"
-            fi
-        fi
-    else
-        echo -e "${NOTE} (1.4.6) 发布列表为空，跳过"
-    fi
-
     # 匹配需要保留的关键词发布
     keep_keyword_releases_list="${TMP_DIR}/B_keep_keyword_releases.json"
     > "${keep_keyword_releases_list}"
+    
+    # 匹配不需要保留的关键词发布
+    exclude_keyword_releases_list="${TMP_DIR}/B_exclude_keyword_releases.json"
+    > "${exclude_keyword_releases_list}"
     
     if [[ "${#releases_keep_keyword[@]}" -ge "1" && -s "${all_releases_list}" ]]; then
         echo -e "${INFO} (1.5.1) 过滤标签关键词: [ $(echo ${releases_keep_keyword[@]} | xargs) ]"
@@ -251,29 +228,30 @@ filter_releases() {
             jq -c "select(.tag_name | index(\"${keyword}\"))" "${all_releases_list}" >> "${keep_keyword_releases_list}"
         done
 
-        # 从原始列表中移除保留的发布
-        if [[ -s "${keep_keyword_releases_list}" ]]; then
-            jq -c --slurpfile keep "${keep_keyword_releases_list}" \
-                'select(any($keep[]; .id == .id) | not)' "${all_releases_list}" > "${all_releases_list}.tmp"
-            mv "${all_releases_list}.tmp" "${all_releases_list}"
-            
-            if [[ "${out_log}" == "true" ]]; then
-                if [[ -s "${keep_keyword_releases_list}" ]]; then
-                    echo -e "${DISPLAY} (1.5.2) 符合条件标签列表:"
-                    cat "${keep_keyword_releases_list}" | jq -c .
-                    echo -e ""
-                else
-                    echo -e "${NOTE} (1.5.3) 符合条件标签列表为空"
-                fi
-                if [[ -s "${all_releases_list}" ]]; then
-                    echo -e "${DISPLAY} (1.5.4) 关键词过滤后剩余列表:"
-                    cat "${all_releases_list}" | jq -c .
-                else
-                    echo -e "${NOTE} (1.5.5) 关键词过滤后列表为空"
-                fi
+        # 保留不包含关键词的发布
+        for keyword in "${releases_keep_keyword[@]}"; do
+            jq -c "select(.tag_name | index(\"${keyword}\") | not)" "${all_releases_list}" >> "${exclude_keyword_releases_list}"
+        done
+
+        # 合并保留的关键词发布和非关键词发布
+        jq -s '.' "${keep_keyword_releases_list}" "${exclude_keyword_releases_list}" > "${all_releases_list}.tmp"
+        mv "${all_releases_list}.tmp" "${all_releases_list}"
+
+        if [[ "${out_log}" == "true" ]]; then
+            if [[ -s "${keep_keyword_releases_list}" ]]; then
+                echo -e "${DISPLAY} (1.5.2) 符合条件标签列表:"
+                cat "${keep_keyword_releases_list}" | jq -c .
+                echo -e ""
+            else
+                echo -e "${NOTE} (1.5.3) 符合条件标签列表为空"
             fi
-        else
-            echo -e "${NOTE} (1.5.6) 没有匹配关键词的发布"
+            if [[ -s "${all_releases_list}" ]]; then
+                echo -e "${DISPLAY} (1.5.4) 关键词过滤后剩余列表:"
+                cat "${all_releases_list}" | jq -c .
+                echo -e ""
+            else
+                echo -e "${NOTE} (1.5.5) 关键词过滤后列表为空"
+            fi
         fi
     else
         echo -e "${NOTE} (1.5.7) 过滤关键词为空，跳过"
@@ -451,6 +429,10 @@ filter_workflows() {
     keep_keyword_workflows_list="${TMP_DIR}/B_keep_keyword_workflows.json"
     > "${keep_keyword_workflows_list}"
     
+    # 匹配不需要保留的关键词工作流
+    exclude_keyword_workflows_list="${TMP_DIR}/B_exclude_keyword_workflows.json"
+    > "${exclude_keyword_workflows_list}"
+    
     if [[ "${#workflows_keep_keyword[@]}" -ge "1" && -s "${all_workflows_list}" ]]; then
         echo -e "${INFO} (2.4.1) 过滤工作流关键词: [ $(echo ${workflows_keep_keyword[@]} | xargs) ]"
         
@@ -459,30 +441,30 @@ filter_workflows() {
             jq -c "select(.name | index(\"${keyword}\"))" "${all_workflows_list}" >> "${keep_keyword_workflows_list}"
         done
 
-        # 从原始列表中移除保留的工作流
-        if [[ -s "${keep_keyword_workflows_list}" ]]; then
-            jq -c --slurpfile keep "${keep_keyword_workflows_list}" \
-                'select(any($keep[]; .id == .id) | not)' "${all_workflows_list}" > "${all_workflows_list}.tmp"
-            mv "${all_workflows_list}.tmp" "${all_workflows_list}"
-            
-            if [[ "${out_log}" == "true" ]]; then
-                if [[ -s "${keep_keyword_workflows_list}" ]]; then
-                    echo -e "${DISPLAY} (2.4.2) 符合条件工作流列表:"
-                    cat "${keep_keyword_workflows_list}" | jq -c .
-                    echo -e ""
-                else
-                    echo -e "${NOTE} (2.4.3) 符合条件工作流列表为空"
-                fi
-                if [[ -s "${all_workflows_list}" ]]; then
-                    echo -e "${DISPLAY} (2.4.4) 关键词过滤后剩余列表:"
-                    cat "${all_workflows_list}" | jq -c .
-                    echo -e ""
-                else
-                    echo -e "${NOTE} (2.4.5) 关键词过滤后列表为空"
-                fi
+        # 保留不包含关键词的工作流
+        for keyword in "${workflows_keep_keyword[@]}"; do
+            jq -c "select(.name | index(\"${keyword}\") | not)" "${all_workflows_list}" >> "${exclude_keyword_workflows_list}"
+        done
+
+        # 合并保留的关键词工作流和非关键词工作流
+        jq -s '.' "${keep_keyword_workflows_list}" "${exclude_keyword_workflows_list}" > "${all_workflows_list}.tmp"
+        mv "${all_workflows_list}.tmp" "${all_workflows_list}"
+
+        if [[ "${out_log}" == "true" ]]; then
+            if [[ -s "${keep_keyword_workflows_list}" ]]; then
+                echo -e "${DISPLAY} (2.4.2) 符合条件工作流列表:"
+                cat "${keep_keyword_workflows_list}" | jq -c .
+                echo -e ""
+            else
+                echo -e "${NOTE} (2.4.3) 符合条件工作流列表为空"
             fi
-        else
-            echo -e "${NOTE} (2.4.6) 没有匹配关键词的工作流"
+            if [[ -s "${all_workflows_list}" ]]; then
+                echo -e "${DISPLAY} (2.4.4) 关键词过滤后剩余列表:"
+                cat "${all_workflows_list}" | jq -c .
+                echo -e ""
+            else
+                echo -e "${NOTE} (2.4.5) 关键词过滤后列表为空"
+            fi
         fi
     else
         echo -e "${NOTE} (2.4.7) 过滤关键词为空，跳过"
