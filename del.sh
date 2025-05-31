@@ -11,10 +11,19 @@ NOTE="[\033[93m 注意 \033[0m]"
 ERROR="[\033[91m 错误 \033[0m]"
 SUCCESS="[\033[92m 成功 \033[0m]"
 
+# 临时文件目录
+TMP_DIR=$(mktemp -d)
+
 #==============================================================================================
+
+cleanup() {
+    rm -rf "${TMP_DIR}"
+    echo -e "${INFO} 已清理临时文件"
+}
 
 error_msg() {
     echo -e "${ERROR} ${1}"
+    cleanup
     exit 1
 }
 
@@ -146,22 +155,43 @@ init_var() {
     echo -e ""
 }
 
+get_total_pages() {
+    local endpoint="$1"
+    local per_page="$2"
+    
+    # 获取第一页数据来确定总页数
+    response=$(curl -s -I \
+        -H "Authorization: Bearer ${gh_token}" \
+        -H "Accept: application/vnd.github+json" \
+        -H "X-GitHub-Api-Version: 2022-11-28" \
+        "https://api.github.com/repos/${repo}/${endpoint}?per_page=${per_page}&page=1")
+    
+    # 从响应头中获取总页数
+    link_header=$(echo "$response" | grep -i '^link:' | tr -d '\r')
+    if [[ -n "$link_header" ]]; then
+        last_page=$(echo "$link_header" | grep -o 'page=[0-9]*>; rel="last"' | cut -d'=' -f2 | cut -d'>' -f1)
+        echo "$last_page"
+    else
+        echo "1"  # 只有一页
+    fi
+}
+
 get_releases_list() {
     echo -e "${STEPS} 开始查询发布列表..."
 
-    # 创建文件存储结果
-    all_releases_list="A_all_releases_list.json"
-    echo "" >"${all_releases_list}"
+    # 创建临时文件存储结果
+    all_releases_list="${TMP_DIR}/A_all_releases_list.json"
+    > "${all_releases_list}"
     
-    # 计算需要请求的总页数
-    total_pages=$(( (max_releases_fetch + github_per_page - 1) / github_per_page ))
-    if [[ "$total_pages" -gt "$github_max_page" ]]; then
-        total_pages="$github_max_page"
-        echo -e "${NOTE} 最大页数限制为 $github_max_page"
-    fi
+    # 获取总页数
+    total_pages=$(get_total_pages "releases" "$github_per_page")
+    total_pages=$((total_pages < github_max_page ? total_pages : github_max_page))
+    echo -e "${INFO} 总页数: ${total_pages}"
 
     # 从最后一页开始获取发布列表
     for (( page=total_pages; page>=1; page-- )); do
+        echo -e "${INFO} 正在获取第 ${page}/${total_pages} 页..."
+        
         response="$(
             curl -s -L -f \
                 -H "Authorization: Bearer ${gh_token}" \
@@ -170,7 +200,7 @@ get_releases_list() {
                 "https://api.github.com/repos/${repo}/releases?per_page=${github_per_page}&page=${page}"
         )" || {
             echo -e "${ERROR} 从GitHub API获取发布失败 (第 $page 页)"
-            break
+            continue
         }
 
         # 获取当前页返回的结果数量
@@ -178,11 +208,8 @@ get_releases_list() {
         echo -e "${INFO} (1.1.${page}) 查询第 [ ${page} ] 页，返回 [ ${get_results_length} ] 条结果"
 
         # 处理结果并追加到文件
-        echo "${response}" | jq -c '.[] | {date: .published_at, id: .id, prerelease: .prerelease, tag_name: .tag_name}' >>"${all_releases_list}"
-
-        # 如果当前页返回的数量小于请求数量，说明已获取全部数据
-        if [[ "$get_results_length" -lt "$github_per_page" ]]; then
-            break
+        if [[ "$get_results_length" -gt 0 ]]; then
+            echo "${response}" | jq -c '.[] | {date: .published_at, id: .id, prerelease: .prerelease, tag_name: .tag_name}' >> "${all_releases_list}"
         fi
     done
 
@@ -191,15 +218,13 @@ get_releases_list() {
         jq -s 'sort_by(.date)' "${all_releases_list}" | jq -c '.[]' > "${all_releases_list}.tmp"
         mv "${all_releases_list}.tmp" "${all_releases_list}"
         
-        # 移除空行
-        sed -i '/^[[:space:]]*$/d' "${all_releases_list}"
-
         # 打印结果日志
-        actual_count=$(cat "${all_releases_list}" | wc -l)
+        actual_count=$(wc -l < "${all_releases_list}")
         echo -e "${INFO} (1.3.1) 从api.github.com获取发布请求成功"
         echo -e "${INFO} (1.3.2) 获取到的发布总数: [ ${actual_count} ]"
         [[ "${out_log}" == "true" ]] && {
-            echo -e "${INFO} (1.3.3) 所有发布列表:\n$(cat ${all_releases_list})"
+            echo -e "${INFO} (1.3.3) 所有发布列表:"
+            cat "${all_releases_list}" | jq -c .
         }
     else
         echo -e "${NOTE} (1.3.4) 发布列表为空，跳过"
@@ -209,6 +234,8 @@ get_releases_list() {
 filter_releases() {
     echo -e "${STEPS} 开始过滤发布列表..."
 
+    all_releases_list="${TMP_DIR}/A_all_releases_list.json"
+    
     # 根据预发布选项过滤(all/false/true)
     if [[ -s "${all_releases_list}" ]]; then
         if [[ "${prerelease_option}" == "all" ]]; then
@@ -222,16 +249,18 @@ filter_releases() {
             jq -c 'select(.prerelease == true)' "${all_releases_list}" > "${all_releases_list}.tmp"
             mv "${all_releases_list}.tmp" "${all_releases_list}"
         fi
-        [[ "${out_log}" == "true" ]] && echo -e "${INFO} (1.4.4) 当前发布列表:\n$(cat ${all_releases_list})"
+        [[ "${out_log}" == "true" ]] && {
+            echo -e "${INFO} (1.4.4) 当前发布列表:"
+            cat "${all_releases_list}" | jq -c .
+        }
     fi
 
     # 匹配需要保留的关键词发布
-    keep_keyword_releases_list="B_keep_keyword_releases.json"
+    keep_keyword_releases_list="${TMP_DIR}/B_keep_keyword_releases.json"
+    > "${keep_keyword_releases_list}"
+    
     if [[ "${#releases_keep_keyword[@]}" -ge "1" && -s "${all_releases_list}" ]]; then
         echo -e "${INFO} (1.5.1) 过滤标签关键词: [ $(echo ${releases_keep_keyword[@]} | xargs) ]"
-        
-        # 清空保留文件
-        echo "" > "${keep_keyword_releases_list}"
         
         # 匹配关键词并写入保留文件
         for keyword in "${releases_keep_keyword[@]}"; do
@@ -245,8 +274,10 @@ filter_releases() {
             mv "${all_releases_list}.tmp" "${all_releases_list}"
             
             [[ "${out_log}" == "true" ]] && {
-                echo -e "${INFO} (1.5.2) 符合条件标签列表:\n$(cat ${keep_keyword_releases_list})"
-                echo -e "${INFO} (1.5.3) 关键词过滤后剩余列表:\n$(cat ${all_releases_list})"
+                echo -e "${INFO} (1.5.2) 符合条件标签列表:"
+                cat "${keep_keyword_releases_list}" | jq -c .
+                echo -e "${INFO} (1.5.3) 关键词过滤后剩余列表:"
+                cat "${all_releases_list}" | jq -c .
             }
         else
             echo -e "${NOTE} (1.5.4) 没有匹配关键词的发布"
@@ -256,11 +287,12 @@ filter_releases() {
     fi
 
     # 保留最新的指定数量发布
-    keep_latest_releases_list="C_keep_latest_releases.json"
+    keep_latest_releases_list="${TMP_DIR}/C_keep_latest_releases.json"
+    > "${keep_latest_releases_list}"
+    
     if [[ -s "${all_releases_list}" ]]; then
         if [[ "${releases_keep_latest}" -eq "0" ]]; then
             echo -e "${INFO} (1.6.1) 将删除所有发布"
-            echo "" > "${keep_latest_releases_list}"
         else
             # 保留最新的N条记录
             tail -n "${releases_keep_latest}" "${all_releases_list}" > "${keep_latest_releases_list}"
@@ -270,8 +302,10 @@ filter_releases() {
             mv "${all_releases_list}.tmp" "${all_releases_list}"
             
             [[ "${out_log}" == "true" ]] && {
-                echo -e "${INFO} (1.6.2) 保留的最新发布列表:\n$(cat ${keep_latest_releases_list})"
-                echo -e "${INFO} (1.6.3) 将要删除的发布列表:\n$(cat ${all_releases_list})"
+                echo -e "${INFO} (1.6.2) 保留的最新发布列表:"
+                cat "${keep_latest_releases_list}" | jq -c .
+                echo -e "${INFO} (1.6.3) 将要删除的发布列表:"
+                cat "${all_releases_list}" | jq -c .
             }
         fi
     else
@@ -282,8 +316,10 @@ filter_releases() {
 delete_releases() {
     echo -e "${STEPS} 开始删除发布..."
 
+    all_releases_list="${TMP_DIR}/A_all_releases_list.json"
+    
     if [[ -s "${all_releases_list}" ]]; then
-        total=$(cat "${all_releases_list}" | wc -l)
+        total=$(wc -l < "${all_releases_list}")
         count=0
         
         while read -r release; do
@@ -337,19 +373,19 @@ delete_releases() {
 get_workflows_list() {
     echo -e "${STEPS} 开始查询工作流列表..."
 
-    # 创建文件存储结果
-    all_workflows_list="A_all_workflows_list.json"
-    echo "" >"${all_workflows_list}"
+    # 创建临时文件存储结果
+    all_workflows_list="${TMP_DIR}/A_all_workflows_list.json"
+    > "${all_workflows_list}"
     
-    # 计算需要请求的总页数
-    total_pages=$(( (max_workflows_fetch + github_per_page - 1) / github_per_page ))
-    if [[ "$total_pages" -gt "$github_max_page" ]]; then
-        total_pages="$github_max_page"
-        echo -e "${NOTE} 最大页数限制为 $github_max_page"
-    fi
+    # 获取总页数
+    total_pages=$(get_total_pages "actions/runs" "$github_per_page")
+    total_pages=$((total_pages < github_max_page ? total_pages : github_max_page))
+    echo -e "${INFO} 总页数: ${total_pages}"
 
     # 从最后一页开始获取工作流列表
     for (( page=total_pages; page>=1; page-- )); do
+        echo -e "${INFO} 正在获取第 ${page}/${total_pages} 页..."
+        
         response="$(
             curl -s -L -f \
                 -H "Authorization: Bearer ${gh_token}" \
@@ -358,7 +394,7 @@ get_workflows_list() {
                 "https://api.github.com/repos/${repo}/actions/runs?per_page=${github_per_page}&page=${page}"
         )" || {
             echo -e "${ERROR} 从GitHub API获取工作流失败 (第 $page 页)"
-            break
+            continue
         }
 
         # 获取当前页返回的结果数量
@@ -366,11 +402,8 @@ get_workflows_list() {
         echo -e "${INFO} (2.1.${page}) 查询第 [ ${page} ] 页，返回 [ ${get_results_length} ] 条结果"
 
         # 处理结果并追加到文件
-        echo "${response}" | jq -c '.workflow_runs[] | select(.status != "in_progress") | {date: .updated_at, id: .id, name: .name}' >>"${all_workflows_list}"
-
-        # 如果当前页返回的数量小于请求数量，说明已获取全部数据
-        if [[ "$get_results_length" -lt "$github_per_page" ]]; then
-            break
+        if [[ "$get_results_length" -gt 0 ]]; then
+            echo "${response}" | jq -c '.workflow_runs[] | select(.status != "in_progress") | {date: .updated_at, id: .id, name: .name}' >> "${all_workflows_list}"
         fi
     done
 
@@ -379,15 +412,13 @@ get_workflows_list() {
         jq -s 'sort_by(.date)' "${all_workflows_list}" | jq -c '.[]' > "${all_workflows_list}.tmp"
         mv "${all_workflows_list}.tmp" "${all_workflows_list}"
         
-        # 移除空行
-        sed -i '/^[[:space:]]*$/d' "${all_workflows_list}"
-
         # 打印结果日志
-        actual_count=$(cat "${all_workflows_list}" | wc -l)
+        actual_count=$(wc -l < "${all_workflows_list}")
         echo -e "${INFO} (2.3.1) 从api.github.com获取工作流请求成功"
         echo -e "${INFO} (2.3.2) 获取到的工作流总数: [ ${actual_count} ]"
         [[ "${out_log}" == "true" ]] && {
-            echo -e "${INFO} (2.3.3) 所有工作流运行列表:\n$(cat ${all_workflows_list})"
+            echo -e "${INFO} (2.3.3) 所有工作流运行列表:"
+            cat "${all_workflows_list}" | jq -c .
         }
     else
         echo -e "${NOTE} (2.3.4) 工作流列表为空，跳过"
@@ -397,13 +428,14 @@ get_workflows_list() {
 filter_workflows() {
     echo -e "${STEPS} 开始过滤工作流列表..."
 
+    all_workflows_list="${TMP_DIR}/A_all_workflows_list.json"
+    
     # 匹配需要保留的关键词工作流
-    keep_keyword_workflows_list="B_keep_keyword_workflows.json"
+    keep_keyword_workflows_list="${TMP_DIR}/B_keep_keyword_workflows.json"
+    > "${keep_keyword_workflows_list}"
+    
     if [[ "${#workflows_keep_keyword[@]}" -ge "1" && -s "${all_workflows_list}" ]]; then
         echo -e "${INFO} (2.4.1) 过滤工作流关键词: [ $(echo ${workflows_keep_keyword[@]} | xargs) ]"
-        
-        # 清空保留文件
-        echo "" > "${keep_keyword_workflows_list}"
         
         # 匹配关键词并写入保留文件
         for keyword in "${workflows_keep_keyword[@]}"; do
@@ -417,8 +449,10 @@ filter_workflows() {
             mv "${all_workflows_list}.tmp" "${all_workflows_list}"
             
             [[ "${out_log}" == "true" ]] && {
-                echo -e "${INFO} (2.4.2) 符合条件工作流列表:\n$(cat ${keep_keyword_workflows_list})"
-                echo -e "${INFO} (2.4.3) 关键词过滤后剩余列表:\n$(cat ${all_workflows_list})"
+                echo -e "${INFO} (2.4.2) 符合条件工作流列表:"
+                cat "${keep_keyword_workflows_list}" | jq -c .
+                echo -e "${INFO} (2.4.3) 关键词过滤后剩余列表:"
+                cat "${all_workflows_list}" | jq -c .
             }
         else
             echo -e "${NOTE} (2.4.4) 没有匹配关键词的工作流"
@@ -428,11 +462,12 @@ filter_workflows() {
     fi
 
     # 保留最新的指定数量工作流
-    keep_latest_workflows_list="C_keep_latest_workflows.json"
+    keep_latest_workflows_list="${TMP_DIR}/C_keep_latest_workflows.json"
+    > "${keep_latest_workflows_list}"
+    
     if [[ -s "${all_workflows_list}" ]]; then
         if [[ "${workflows_keep_latest}" -eq "0" ]]; then
             echo -e "${INFO} (2.5.1) 将删除所有工作流"
-            echo "" > "${keep_latest_workflows_list}"
         else
             # 保留最新的N条记录
             tail -n "${workflows_keep_latest}" "${all_workflows_list}" > "${keep_latest_workflows_list}"
@@ -442,8 +477,10 @@ filter_workflows() {
             mv "${all_workflows_list}.tmp" "${all_workflows_list}"
             
             [[ "${out_log}" == "true" ]] && {
-                echo -e "${INFO} (2.5.2) 保留的最新工作流列表:\n$(cat ${keep_latest_workflows_list})"
-                echo -e "${INFO} (2.5.3) 将要删除的工作流列表:\n$(cat ${all_workflows_list})"
+                echo -e "${INFO} (2.5.2) 保留的最新工作流列表:"
+                cat "${keep_latest_workflows_list}" | jq -c .
+                echo -e "${INFO} (2.5.3) 将要删除的工作流列表:"
+                cat "${all_workflows_list}" | jq -c .
             }
         fi
     else
@@ -454,8 +491,10 @@ filter_workflows() {
 delete_workflows() {
     echo -e "${STEPS} 开始删除工作流..."
 
+    all_workflows_list="${TMP_DIR}/A_all_workflows_list.json"
+    
     if [[ -s "${all_workflows_list}" ]]; then
-        total=$(cat "${all_workflows_list}" | wc -l)
+        total=$(wc -l < "${all_workflows_list}")
         count=0
         
         while read -r workflow; do
@@ -486,6 +525,9 @@ delete_workflows() {
         echo -e "${NOTE} (2.6.5) 没有需要删除的工作流，跳过"
     fi
 }
+
+# 主程序
+trap cleanup EXIT
 
 # 显示欢迎信息
 echo -e "${STEPS} 欢迎使用删除旧发布和工作流运行工具!"
