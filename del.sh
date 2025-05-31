@@ -237,36 +237,37 @@ filter_releases() {
         return
     fi
 
-# 2. 处理关键词过滤
-if [[ "${#releases_keep_keyword[@]}" -ge "1" && -s "${filtered_releases_list}" ]]; then
-    echo -e "${INFO} (1.5.1) 过滤标签关键词: [ $(echo ${releases_keep_keyword[@]} | xargs) ]"
-    
-    # Convert line-delimited JSON to array first
-    jq -s '.' "${filtered_releases_list}" > "${filtered_releases_list}.array"
-    mv "${filtered_releases_list}.array" "${filtered_releases_list}"
-
-    # 构建关键词过滤条件
-    local filter_condition=".[] | select(true"
-    for keyword in "${releases_keep_keyword[@]}"; do
-        filter_condition+=" and (.tag_name | contains(\"${keyword}\") | not)"
-    done
-    filter_condition+=")"
-
-    # 应用过滤
-    jq "[${filter_condition}]" "${filtered_releases_list}" > "${filtered_releases_list}.tmp"
-    
-    # 记录保留的发布（仅日志）
-    if [[ "${out_log}" == "true" ]]; then
-        kept_releases_list="${TMP_DIR}/kept_releases.json"
-        jq "[.[] | select(${filter_condition} | not)]" "${filtered_releases_list}" > "${kept_releases_list}"
-        echo -e "${DISPLAY} (1.5.2) 符合条件标签列表（将被保留）:"
-        jq -r '.[].tag_name' "${kept_releases_list}"
+    # 2. 处理关键词过滤
+    if [[ "${#releases_keep_keyword[@]}" -ge "1" && -s "${filtered_releases_list}" ]]; then
+        echo -e "${INFO} (1.5.1) 过滤标签关键词: [ $(echo ${releases_keep_keyword[@]} | xargs) ]"
+        
+        # 构建关键词过滤条件
+        local filter_expr=".[] | select("
+        local first=true
+        for keyword in "${releases_keep_keyword[@]}"; do
+            if [[ "$first" == "false" ]]; then
+                filter_expr+=" and "
+            fi
+            filter_expr+="(.tag_name | contains(\"${keyword}\") | not"
+            first=false
+        done
+        filter_expr+=")"
+        
+        # 应用过滤
+        jq "[${filter_expr}]" "${filtered_releases_list}" > "${filtered_releases_list}.tmp"
+        
+        # 记录保留的发布（仅日志）
+        if [[ "${out_log}" == "true" ]]; then
+            kept_releases_list="${TMP_DIR}/kept_releases.json"
+            jq "[.[] | select(${filter_expr} | not)]" "${filtered_releases_list}" > "${kept_releases_list}"
+            echo -e "${DISPLAY} (1.5.2) 符合条件标签列表（将被保留）:"
+            jq -r '.[].tag_name' "${kept_releases_list}"
+        fi
+        
+        mv "${filtered_releases_list}.tmp" "${filtered_releases_list}"
+    else
+        echo -e "${NOTE} (1.5.3) 过滤关键词为空，跳过"
     fi
-    
-    mv "${filtered_releases_list}.tmp" "${filtered_releases_list}"
-else
-    echo -e "${NOTE} (1.5.3) 过滤关键词为空，跳过"
-fi
 
     # 3. 处理保留最新N条
     final_releases_list="${TMP_DIR}/C_final_releases_list.json"
