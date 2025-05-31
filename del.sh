@@ -210,110 +210,88 @@ get_releases_list() {
 filter_releases() {
     echo -e "${STEPS} 开始过滤发布列表..."
 
+    # 输入文件
     all_releases_list="${TMP_DIR}/A_all_releases_list.json"
-    
-    # 根据预发布选项过滤(all/false/true)
-    if [[ -s "${all_releases_list}" ]]; then
-        if [[ "${prerelease_option}" == "all" ]]; then
-            echo -e "${NOTE} (1.4.1) 不过滤预发布选项，跳过"
-        elif [[ "${prerelease_option}" == "false" ]]; then
-            echo -e "${INFO} (1.4.2) 过滤预发布选项: [ false ]"
-            jq -c 'select(.prerelease == false)' "${all_releases_list}" > "${all_releases_list}.tmp"
-            mv "${all_releases_list}.tmp" "${all_releases_list}"
-        elif [[ "${prerelease_option}" == "true" ]]; then
-            echo -e "${INFO} (1.4.3) 过滤预发布选项: [ true ]"
-            jq -c 'select(.prerelease == true)' "${all_releases_list}" > "${all_releases_list}.tmp"
-            mv "${all_releases_list}.tmp" "${all_releases_list}"
-        fi
-        
-        if [[ "${out_log}" == "true" ]]; then
-            if [[ -s "${all_releases_list}" ]]; then
-                echo -e "${DISPLAY} (1.4.4) 当前发布列表:"
-                cat "${all_releases_list}" | jq -c .
-                echo -e ""
-            else
-                echo -e "${NOTE} (1.4.5) 发布列表为空"
-            fi
-        fi
-    else
-        echo -e "${NOTE} (1.4.6) 发布列表为空，跳过"
-    fi
+    # 输出文件
+    filtered_releases_list="${TMP_DIR}/B_filtered_releases_list.json"
+    > "${filtered_releases_list}"
 
-    # 匹配需要保留的关键词发布
-    keep_keyword_releases_list="${TMP_DIR}/B_keep_keyword_releases.json"
-    > "${keep_keyword_releases_list}"
-    
+    # 1. 处理关键词过滤
     if [[ "${#releases_keep_keyword[@]}" -ge "1" && -s "${all_releases_list}" ]]; then
         echo -e "${INFO} (1.5.1) 过滤标签关键词: [ $(echo ${releases_keep_keyword[@]} | xargs) ]"
         
-        # 匹配关键词并写入保留文件
+        # 将文件转换为JSON数组（如果还不是）
+        if ! jq -e '. | type == "array"' "${all_releases_list}" &>/dev/null; then
+            jq -s '.' "${all_releases_list}" > "${all_releases_list}.tmp"
+            mv "${all_releases_list}.tmp" "${all_releases_list}"
+        fi
+
+        # 构建关键词过滤条件
+        local filter_condition=""
         for keyword in "${releases_keep_keyword[@]}"; do
-            jq -c "select(.tag_name | index(\"${keyword}\"))" "${all_releases_list}" >> "${keep_keyword_releases_list}"
+            filter_condition+=" and (.tag_name | contains(\"${keyword}\") | not)"
         done
+        filter_condition="${filter_condition# and }"  # 移除开头的" and "
 
-        # 从原始列表中移除保留的发布
-        if [[ -s "${keep_keyword_releases_list}" ]]; then
-            jq -c --slurpfile keep "${keep_keyword_releases_list}" \
-                'select(any($keep[]; .id == .id) | not)' "${all_releases_list}" > "${all_releases_list}.tmp"
-            mv "${all_releases_list}.tmp" "${all_releases_list}"
-            
-            if [[ "${out_log}" == "true" ]]; then
-                if [[ -s "${keep_keyword_releases_list}" ]]; then
-                    echo -e "${DISPLAY} (1.5.2) 符合条件标签列表:"
-                    cat "${keep_keyword_releases_list}" | jq -c .
-                    echo -e ""
-                else
-                    echo -e "${NOTE} (1.5.3) 符合条件标签列表为空"
-                fi
-                if [[ -s "${all_releases_list}" ]]; then
-                    echo -e "${DISPLAY} (1.5.4) 关键词过滤后剩余列表:"
-                    cat "${all_releases_list}" | jq -c .
-                else
-                    echo -e "${NOTE} (1.5.5) 关键词过滤后列表为空"
-                fi
-            fi
-        else
-            echo -e "${NOTE} (1.5.6) 没有匹配关键词的发布"
+        # 应用过滤
+        jq -c "[.[] | select(${filter_condition})]" "${all_releases_list}" > "${filtered_releases_list}"
+        
+        # 记录保留的工作流（仅日志）
+        if [[ "${out_log}" == "true" ]]; then
+            kept_releases_list="${TMP_DIR}/kept_releases.json"
+            jq -c "[.[] | select(${filter_condition} | not)]" "${all_releases_list}" > "${kept_releases_list}"
+            echo -e "${DISPLAY} (1.5.2) 符合条件标签列表:"
+            jq -c '.[]' "${kept_releases_list}"
         fi
     else
-        echo -e "${NOTE} (1.5.7) 过滤关键词为空，跳过"
+        echo -e "${NOTE} (1.5.3) 无关键词过滤，使用原始列表"
+        cp "${all_releases_list}" "${filtered_releases_list}"
     fi
 
-    # 保留最新的指定数量发布
-    keep_latest_releases_list="${TMP_DIR}/C_keep_latest_releases.json"
-    > "${keep_latest_releases_list}"
-    
-    if [[ -s "${all_releases_list}" ]]; then
+    # 2. 处理保留最新N条
+    final_releases_list="${TMP_DIR}/C_final_releases_list.json"
+    > "${final_releases_list}"
+
+    if [[ -s "${filtered_releases_list}" ]]; then
         if [[ "${releases_keep_latest}" -eq "0" ]]; then
-            echo -e "${INFO} (1.6.1) 将删除所有发布"
+            echo -e "${INFO} (1.6.1) 将删除所有剩余发布"
+            cp "${filtered_releases_list}" "${final_releases_list}"
         else
-            # 保留最新的N条记录
-            tail -n "${releases_keep_latest}" "${all_releases_list}" > "${keep_latest_releases_list}"
+            echo -e "${INFO} (1.6.2) 保留最新的 ${releases_keep_latest} 个发布"
             
-            # 从原始列表中移除保留的发布
-            head -n "-${releases_keep_latest}" "${all_releases_list}" > "${all_releases_list}.tmp"
-            mv "${all_releases_list}.tmp" "${all_releases_list}"
+            # 按日期排序（从旧到新）
+            jq -c 'sort_by(.date)' "${filtered_releases_list}" > "${filtered_releases_list}.sorted"
             
-            if [[ "${out_log}" == "true" ]]; then
-                if [[ -s "${keep_latest_releases_list}" ]]; then
-                    echo -e "${DISPLAY} (1.6.2) 保留的最新发布列表:"
-                    cat "${keep_latest_releases_list}" | jq -c .
-                    echo -e ""
-                else
-                    echo -e "${NOTE} (1.6.3) 保留的最新发布列表为空"
+            # 计算要保留的数量
+            local total_count=$(jq 'length' "${filtered_releases_list}.sorted")
+            local keep_count=$(( total_count > releases_keep_latest ? total_count - releases_keep_latest : 0 ))
+            
+            if [[ "${keep_count}" -gt 0 ]]; then
+                # 提取要删除的（最旧的）
+                jq -c ".[0:${keep_count}]" "${filtered_releases_list}.sorted" > "${final_releases_list}"
+                
+                # 记录保留的发布（仅日志）
+                if [[ "${out_log}" == "true" ]]; then
+                    echo -e "${DISPLAY} (1.6.3) 将被保留的最新发布:"
+                    jq -c ".[${keep_count}:]" "${filtered_releases_list}.sorted"
                 fi
-                if [[ -s "${all_releases_list}" ]]; then
-                    echo -e "${DISPLAY} (1.6.4) 将要删除的发布列表:"
-                    cat "${all_releases_list}" | jq -c .
-                    echo -e ""
-                else
-                    echo -e "${NOTE} (1.6.5) 将要删除的发布列表为空"
-                fi
+            else
+                echo -e "${NOTE} (1.6.4) 发布数量不足 ${releases_keep_latest}，全部保留"
+                > "${final_releases_list}"
             fi
         fi
+        
+        # 日志输出
+        if [[ "${out_log}" == "true" && -s "${final_releases_list}" ]]; then
+            echo -e "${DISPLAY} (1.6.5) 将要删除的发布:"
+            jq -c '.[]' "${final_releases_list}"
+        fi
     else
-        echo -e "${NOTE} (1.6.6) 发布列表为空，跳过"
+        echo -e "${NOTE} (1.6.6) 无发布需要处理"
     fi
+
+    # 更新最终列表
+    mv "${final_releases_list}" "${all_releases_list}"
 }
 
 delete_releases() {
