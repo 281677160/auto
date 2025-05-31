@@ -77,7 +77,6 @@ runs:
         out_log=$(echo "${{ inputs.out_log }}" | tr -d '[:space:]')
         repo=$(echo "${{ inputs.repo }}" | tr -d '[:space:]}')
         gh_token="${{ inputs.gh_token }}"
-        github_workspace="${GITHUB_ACTION_PATH}"
 
         # 错误提示颜色
         ERROR="[\033[91m ERROR \033[0m]"
@@ -107,7 +106,6 @@ runs:
         [[ -n "${max_workflows_fetch}" ]] && make_command="${make_command} -h ${max_workflows_fetch}"
         [[ -n "${gh_token}" ]] && make_command="${make_command} -g ${gh_token}"
         [[ -n "${out_log}" ]] && make_command="${make_command} -o ${out_log}"
-        [[ -n "${github_workspace}" ]] && make_command="${make_command} -e ${github_workspace}"
 
         # 执行脚本
         chmod +x del.sh
