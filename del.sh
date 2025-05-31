@@ -121,6 +121,8 @@ get_releases_list() {
     # 获取发布列表（从最后一页开始）
     current_count=0
     for (( page=total_pages; page>=1; page-- )); do
+        echo -e "${INFO} (1.1.${page}) 查询发布第 [ ${page} ] 页"
+        
         response="$(
             curl -s -L -f \
                 -H "Authorization: Bearer ${gh_token}" \
@@ -132,9 +134,15 @@ get_releases_list() {
             break
         }
 
+        # 检查是否有返回内容
+        if [[ -z "$response" || "$response" == "[]" ]]; then
+            echo -e "${INFO} (1.1.${page}) 第 ${page} 页返回空结果"
+            continue
+        fi
+
         # 获取当前页返回的结果数量
         get_results_length="$(echo "${response}" | jq '. | length')"
-        echo -e "${INFO} (1.1.${page}) 查询第 [ ${page} ] 页，返回 [ ${get_results_length} ] 条结果"
+        echo -e "${INFO} (1.1.${page}) 返回 [ ${get_results_length} ] 条发布结果"
 
         # 计算还需要获取的数量
         remaining=$(( max_releases_fetch - current_count ))
@@ -378,6 +386,8 @@ get_workflows_list() {
     # 获取工作流列表（从最后一页开始）
     current_count=0
     for (( page=total_pages; page>=1; page-- )); do
+        echo -e "${INFO} (2.1.${page}) 查询工作流第 [ ${page} ] 页"
+        
         response="$(
             curl -s -L -f \
                 -H "Authorization: Bearer ${gh_token}" \
@@ -389,9 +399,23 @@ get_workflows_list() {
             break
         }
 
+        # 检查是否有返回内容
+        if [[ -z "$response" ]]; then
+            echo -e "${INFO} (2.1.${page}) 第 ${page} 页返回空结果"
+            continue
+        fi
+
+        # 提取工作流运行列表
+        workflow_runs="$(echo "${response}" | jq -c '.workflow_runs')"
+        
         # 获取当前页返回的结果数量
-        get_results_length="$(echo "${response}" | jq -r '.workflow_runs | length')"
-        echo -e "${INFO} (2.1.${page}) 查询第 [ ${page} ] 页，返回 [ ${get_results_length} ] 条结果"
+        get_results_length="$(echo "${workflow_runs}" | jq '. | length')"
+        echo -e "${INFO} (2.1.${page}) 返回 [ ${get_results_length} ] 条工作流结果"
+
+        # 如果没有工作流运行，继续下一页
+        if [[ "$get_results_length" -eq 0 ]]; then
+            continue
+        fi
 
         # 计算还需要获取的数量
         remaining=$(( max_workflows_fetch - current_count ))
@@ -399,23 +423,18 @@ get_workflows_list() {
             break
         fi
 
-        # 限制本次处理的数量
+        # 处理当前页的工作流数据
         if [[ "$get_results_length" -gt "$remaining" ]]; then
-            echo "${response}" |
-                jq -c ".workflow_runs[0:'$remaining'] | select(.status != \"in_progress\") | {date: .updated_at, id: .id, name: .name}" \
-                    >>"${all_workflows_list}"
+            echo "${workflow_runs}" |
+                jq -c ".[0:'$remaining'] | select(.status != \"in_progress\") | {date: .updated_at, id: .id, name: .name}" \
+                >>"${all_workflows_list}"
             current_count=$(( current_count + remaining ))
             break
         else
-            echo "${response}" |
-                jq -c '.workflow_runs[] | select(.status != "in_progress") | {date: .updated_at, id: .id, name: .name}' \
-                    >>"${all_workflows_list}"
+            echo "${workflow_runs}" |
+                jq -c '.[] | select(.status != "in_progress") | {date: .updated_at, id: .id, name: .name}' \
+                >>"${all_workflows_list}"
             current_count=$(( current_count + get_results_length ))
-        fi
-
-        # 如果当前页返回的数量小于请求数量，说明已获取全部数据
-        if [[ "$get_results_length" -lt "$github_per_page" ]]; then
-            break
         fi
     done
 
