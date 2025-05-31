@@ -472,23 +472,23 @@ filter_workflows() {
         echo -e "${NOTE} (2.4.3) 过滤关键词为空，跳过关键词过滤"
     fi
 
-    # 2. 保留最新的N条非关键词工作流（仅用于日志显示）
+    # 2. 按时间排序并保留最新的N条非关键词工作流
     keep_latest_workflows_list="${TMP_DIR}/C_keep_latest_workflows.json"
     > "${keep_latest_workflows_list}"
     
     if [[ -s "${all_workflows_list}" ]]; then
-        # 按日期排序（从旧到新）
-        jq -s 'sort_by(.date)' "${all_workflows_list}" | jq -c '.[]' > "${all_workflows_list}.tmp"
+        # 按日期排序（从新到旧）
+        jq -s 'sort_by(.date | strptime("%Y-%m-%dT%H:%M:%SZ") | mktime) | reverse' "${all_workflows_list}" | jq -c '.[]' > "${all_workflows_list}.tmp"
         mv "${all_workflows_list}.tmp" "${all_workflows_list}"
         
         if [[ "${workflows_keep_latest}" -eq "0" ]]; then
             echo -e "${INFO} (2.5.1) 将删除所有非关键词工作流"
         else
             # 保留最新的N条记录
-            tail -n "${workflows_keep_latest}" "${all_workflows_list}" > "${keep_latest_workflows_list}"
+            head -n "${workflows_keep_latest}" "${all_workflows_list}" > "${keep_latest_workflows_list}"
             
             # 从原始列表中移除保留的工作流
-            head -n "-${workflows_keep_latest}" "${all_workflows_list}" > "${all_workflows_list}.tmp"
+            tail -n "+${workflows_keep_latest}" "${all_workflows_list}" > "${all_workflows_list}.tmp"
             mv "${all_workflows_list}.tmp" "${all_workflows_list}"
             
             if [[ "${out_log}" == "true" && -s "${keep_latest_workflows_list}" ]]; then
