@@ -456,44 +456,25 @@ filter_workflows() {
     if [[ "${#workflows_keep_keyword[@]}" -ge "1" && -s "${all_workflows_list}" ]]; then
         echo -e "${INFO} (2.4.1) 过滤工作流关键词: [ $(echo ${workflows_keep_keyword[@]} | xargs) ]"
 
-        # 确保文件是有效的JSON数组
-        if ! jq -e '. | type == "array"' "${all_workflows_list}" &>/dev/null; then
-            # 如果不是数组，转换为数组
-            jq -s '.' "${all_workflows_list}" > "${all_workflows_list}.tmp"
-            mv "${all_workflows_list}.tmp" "${all_workflows_list}"
-        fi
-
         # 提取匹配关键词的工作流到B文件
         for keyword in "${workflows_keep_keyword[@]}"; do
-            jq -c --arg kw "$keyword" '.[] | select(.name | contains($kw))' "${all_workflows_list}" >> "${keep_keyword_workflows_list}"
+            jq -c --arg kw "$keyword" 'select(.name | contains($kw))' "${all_workflows_list}" >> "${keep_keyword_workflows_list}"
         done
 
         # 提取不匹配关键词的工作流到临时文件
-        jq -c '.[]' "${all_workflows_list}" | while read -r workflow; do
-            match=false
-            for keyword in "${workflows_keep_keyword[@]}"; do
-                if echo "$workflow" | jq -e --arg kw "$keyword" 'select(.name | contains($kw))' &>/dev/null; then
-                    match=true
-                    break
-                fi
-            done
-            if ! $match; then
-                echo "$workflow" >> "${temp_file}"
-            fi
-        done
-
-        # 更新主列表为不匹配的内容
-        jq -s '.' "${temp_file}" > "${all_workflows_list}"
+        jq -c --slurpfile keep "${keep_keyword_workflows_list}" \
+            'select(all($keep[]; .id != .id))' "${all_workflows_list}" > "${temp_file}"
+        mv "${temp_file}" "${all_workflows_list}"
 
         if [[ "${out_log}" == "true" ]]; then
             if [[ -s "${keep_keyword_workflows_list}" ]]; then
                 echo -e "${DISPLAY} (2.4.2) 过滤关键词的条目，将不会被删除:"
-                jq -s '.' "${keep_keyword_workflows_list}" | jq -c '.[]'
+                jq -c . "${keep_keyword_workflows_list}"
                 echo -e ""
             fi
             if [[ -s "${all_workflows_list}" ]]; then
                 echo -e "${DISPLAY} (2.4.3) 关键词过滤后剩余列表:"
-                jq -c '.[]' "${all_workflows_list}"
+                jq -c . "${all_workflows_list}"
                 echo -e ""
             else
                 echo -e "${NOTE} (2.4.4) 关键词过滤后列表为空"
@@ -511,7 +492,7 @@ filter_workflows() {
         if [[ "${workflows_keep_latest}" -eq "0" ]]; then
             echo -e "${INFO} (2.5.1) 将删除所有剩余工作流"
         else
-            # 按日期排序（从旧到新）
+            # 将JSON行转换为数组，排序后再转换回行
             jq -s 'sort_by(.date)' "${all_workflows_list}" | jq -c '.[]' > "${all_workflows_list}.tmp"
             mv "${all_workflows_list}.tmp" "${all_workflows_list}"
 
@@ -525,29 +506,30 @@ filter_workflows() {
                 # 从原始列表中移除保留的工作流
                 head -n "-${workflows_keep_latest}" "${all_workflows_list}" > "${all_workflows_list}.tmp"
                 mv "${all_workflows_list}.tmp" "${all_workflows_list}"
+
+                if [[ "${out_log}" == "true" ]]; then
+                    if [[ -s "${keep_latest_workflows_list}" ]]; then
+                        echo -e "${DISPLAY} (2.5.2) 保留时间靠前的工作流，将不会被删除:"
+                        jq -c . "${keep_latest_workflows_list}"
+                        echo -e ""
+                    fi
+                    if [[ -s "${all_workflows_list}" ]]; then
+                        echo -e "${DISPLAY} (2.5.3) 将要删除的工作流列表:"
+                        jq -c . "${all_workflows_list}"
+                        echo -e ""
+                    else
+                        echo -e "${NOTE} (2.5.4) 没有需要删除的工作流"
+                    fi
+                fi
             else
                 # 如果总数小于等于要保留的数量，全部保留
                 cp "${all_workflows_list}" "${keep_latest_workflows_list}"
                 > "${all_workflows_list}"
-            fi
-
-            if [[ "${out_log}" == "true" ]]; then
-                if [[ -s "${keep_latest_workflows_list}" ]]; then
-                    echo -e "${DISPLAY} (2.5.2) 保留时间靠前的工作流，将不会被删除:"
-                    jq -c '.' "${keep_latest_workflows_list}"
-                    echo -e ""
-                fi
-                if [[ -s "${all_workflows_list}" ]]; then
-                    echo -e "${DISPLAY} (2.5.3) 将要删除的工作流列表:"
-                    jq -c '.' "${all_workflows_list}"
-                    echo -e ""
-                else
-                    echo -e "${NOTE} (2.5.4) 没有需要删除的工作流"
-                fi
+                echo -e "${NOTE} (2.5.6) 剩余工作流数量不足，全部保留"
             fi
         fi
     else
-        echo -e "${NOTE} (2.5.5) 工作流列表为空，跳过"
+        echo -e "${NOTE} (2.5.7) 工作流列表为空，跳过"
     fi
 }
 
