@@ -18,7 +18,9 @@ STEPS="[\033[95m 执行 \033[0m]"
 INFO="[\033[94m 信息 \033[0m]"
 NOTE="[\033[93m 注意 \033[0m]"
 ERROR="[\033[91m 错误 \033[0m]"
+DISPLAY="[\033[96m 日志 \033[0m]"
 SUCCESS="[\033[92m 成功 \033[0m]"
+
 
 # 临时文件目录
 TMP_DIR=$(mktemp -d)
@@ -187,7 +189,7 @@ get_releases_list() {
         echo -e "${INFO} (1.3.1) 获取发布信息请求成功"
         echo -e "${INFO} (1.3.2) 获取到的发布总数: [ ${actual_count} ]"
         [[ "${out_log}" == "true" ]] && {
-            echo -e "${INFO} (1.3.3) 所有发布列表:"
+            echo -e "${DISPLAY} (1.3.3) 所有发布列表:"
             cat "${all_releases_list}" | jq -c .
         }
     else
@@ -214,7 +216,7 @@ filter_releases() {
             mv "${all_releases_list}.tmp" "${all_releases_list}"
         fi
         [[ "${out_log}" == "true" ]] && {
-            echo -e "${INFO} (1.4.4) 当前发布列表:"
+            echo -e "${DISPLAY} (1.4.4) 当前发布列表:"
             cat "${all_releases_list}" | jq -c .
         }
     fi
@@ -238,9 +240,9 @@ filter_releases() {
             mv "${all_releases_list}.tmp" "${all_releases_list}"
             
             [[ "${out_log}" == "true" ]] && {
-                echo -e "${INFO} (1.5.2) 符合条件标签列表:"
+                echo -e "${DISPLAY} (1.5.2) 符合条件标签列表:"
                 cat "${keep_keyword_releases_list}" | jq -c .
-                echo -e "${INFO} (1.5.3) 关键词过滤后剩余列表:"
+                echo -e "${DISPLAY} (1.5.3) 关键词过滤后剩余列表:"
                 cat "${all_releases_list}" | jq -c .
             }
         else
@@ -266,9 +268,9 @@ filter_releases() {
             mv "${all_releases_list}.tmp" "${all_releases_list}"
             
             [[ "${out_log}" == "true" ]] && {
-                echo -e "${INFO} (1.6.2) 保留的最新发布列表:"
+                echo -e "${DISPLAY} (1.6.2) 保留的最新发布列表:"
                 cat "${keep_latest_releases_list}" | jq -c .
-                echo -e "${INFO} (1.6.3) 将要删除的发布列表:"
+                echo -e "${DISPLAY} (1.6.3) 将要删除的发布列表:"
                 cat "${all_releases_list}" | jq -c .
             }
         fi
@@ -381,7 +383,7 @@ get_workflows_list() {
         echo -e "${INFO} (2.3.1) 获取工作流信息请求成功"
         echo -e "${INFO} (2.3.2) 获取到的工作流总数: [ ${actual_count} ]"
         [[ "${out_log}" == "true" ]] && {
-            echo -e "${INFO} (2.3.3) 所有工作流运行列表:"
+            echo -e "${DISPLAY} (2.3.3) 所有工作流运行列表:"
             cat "${all_workflows_list}" | jq -c .
         }
     else
@@ -413,9 +415,9 @@ filter_workflows() {
             mv "${all_workflows_list}.tmp" "${all_workflows_list}"
             
             [[ "${out_log}" == "true" ]] && {
-                echo -e "${INFO} (2.4.2) 符合条件工作流列表:"
+                echo -e "${DISPLAY} (2.4.2) 符合条件工作流列表:"
                 cat "${keep_keyword_workflows_list}" | jq -c .
-                echo -e "${INFO} (2.4.3) 关键词过滤后剩余列表:"
+                echo -e "${DISPLAY} (2.4.3) 关键词过滤后剩余列表:"
                 cat "${all_workflows_list}" | jq -c .
             }
         else
@@ -441,9 +443,9 @@ filter_workflows() {
             mv "${all_workflows_list}.tmp" "${all_workflows_list}"
             
             [[ "${out_log}" == "true" ]] && {
-                echo -e "${INFO} (2.5.2) 保留的最新工作流列表:"
+                echo -e "${DISPLAY} (2.5.2) 保留的最新工作流列表:"
                 cat "${keep_latest_workflows_list}" | jq -c .
-                echo -e "${INFO} (2.5.3) 将要删除的工作流列表:"
+                echo -e "${DISPLAY} (2.5.3) 将要删除的工作流列表:"
                 cat "${all_workflows_list}" | jq -c .
             }
         fi
