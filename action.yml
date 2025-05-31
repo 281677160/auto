@@ -65,26 +65,32 @@ runs:
     - name: Ensure proper jq installation
       shell: bash
       run: |
+        INFO="[\033[94m 信息 \033[0m]"
+        ERROR="[\033[91m ERROR \033[0m]"
+        error_msg() {
+            echo -e "${ERROR} ${1}"
+            exit 1
+        }
+        
         # 根据DEBUG变量决定是否静默
         if [ "$DEBUG" != "true" ]; then
           exec >/dev/null 2>&1
         fi
 
         if command -v jq &> /dev/null; then
-          echo "Removing existing jq installation..."
+          echo -e "${INFO} Removing existing jq installation..."
           sudo snap remove jq || true
           sudo apt-get remove -y jq || true
         fi
 
-        echo "Installing jq via apt..."
+        echo -e "${INFO} Installing jq via apt..."
         sudo apt-get -qq update
         sudo apt-get -qq install -y jq
 
         if ! command -v jq &> /dev/null; then
-          echo "::error::Failed to install jq"
-          exit 1
+          error_msg "jq 安装失败，退出脚本"
         fi
-        echo "jq installed successfully at $(which jq)"
+        echo -e "${INFO} jq installed successfully at $(which jq)"
       env:
         DEBIAN_FRONTEND: noninteractive
         DEBUG: ${{ inputs.debug || 'false' }}
@@ -111,7 +117,7 @@ runs:
         repo=$(echo "${{ inputs.repo }}" | tr -d '[:space:]}')
         gh_token="${{ inputs.gh_token }}"
 
-        # 错误提示颜色
+        # 错误提示字体颜色
         ERROR="[\033[91m ERROR \033[0m]"
         error_msg() {
             echo -e "${ERROR} ${1}"
@@ -139,10 +145,6 @@ runs:
         [[ -n "${max_workflows_fetch}" ]] && make_command="${make_command} -h ${max_workflows_fetch}"
         [[ -n "${gh_token}" ]] && make_command="${make_command} -g ${gh_token}"
         [[ -n "${out_log}" ]] && make_command="${make_command} -o ${out_log}"
-
-        if ! jq --version &> /dev/null; then
-          error_msg "jq 安装失败，退出脚本"
-        fi
 
         # 执行脚本
         chmod +x del.sh
