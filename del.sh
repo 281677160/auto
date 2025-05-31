@@ -130,8 +130,8 @@ get_releases_list() {
     echo -e "${STEPS} 开始查询发布列表..."
 
     # 创建文件存储结果
-    all_releases_list="${tmp_dir}/json_api_releases"
-    install -m 0755 /dev/null "${all_releases_list}"
+    all_releases_list="$github_workspace/json_api_releases"
+    echo "" > "${all_releases_list}"
     
     # 计算需要请求的总页数
     total_pages=$(( (max_releases_fetch + github_per_page - 1) / github_per_page ))
