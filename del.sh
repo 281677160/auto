@@ -456,7 +456,7 @@ filter_workflows() {
         
         # 匹配关键词并写入保留文件（仅用于日志）
         for keyword in "${workflows_keep_keyword[@]}"; do
-            jq -c "select(.name | test(\"${keyword}\"))" "${all_workflows_list}" >> "${keep_keyword_workflows_list}"
+            jq -c "select(.name | index(\"${keyword}\"))" "${all_workflows_list}" >> "${keep_keyword_workflows_list}"
         done
 
         # 从原始列表中移除关键词匹配的工作流
