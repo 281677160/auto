@@ -82,9 +82,6 @@ check_file_non_empty() {
 init_var() {
     echo -e "${STEPS} 开始初始化变量..."
 
-    # 安装必要的依赖包
-    sudo apt-get -qq update && sudo apt-get -qq install -y jq curl
-
     # 确保临时文件存在
     ensure_file_exists "$all_releases_list"
     ensure_file_exists "$filtered_by_prerelease"
