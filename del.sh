@@ -442,56 +442,70 @@ get_workflows_list() {
     fi
 }
 
+# 定义过滤函数
 filter_workflows() {
     echo -e "${STEPS} 开始过滤工作流列表..."
 
-    local all_workflows_list="${TMP_DIR}/A_all_workflows_list.json"
-    local keyword_workflows_list="${TMP_DIR}/B_keyword_workflows.json"
-    local non_keyword_workflows_list="${TMP_DIR}/C_non_keyword_workflows.json"
+    local all_workflows="${TMP_DIR}/all_workflows.json"
+    local keyword_list="${TMP_DIR}/keyword_workflows.json"
+    local non_keyword_list="${TMP_DIR}/non_keyword_workflows.json"
 
-    # 初始化文件
-    > "${keyword_workflows_list}"
-    > "${non_keyword_workflows_list}"
+    # 清空临时文件
+    > "${keyword_list}"
+    > "${non_keyword_list}"
 
-    if [[ -s "${all_workflows_list}" ]]; then
-        if [[ "${#workflows_keep_keyword[@]}" -ge 1 ]]; then
-            echo -e "${INFO} (2.4.1) 过滤工作流关键词: [ $(echo ${workflows_keep_keyword[@]} | xargs) ]"
+    if [[ -s "${all_workflows}" ]]; then
+        if [[ "${#workflows_keep_keyword[@]}" -gt 0 ]]; then
+            echo -e "${INFO} (2.4.1) 过滤工作流关键词: [ ${workflows_keep_keyword[*]} ]"
             
-            # 正确处理关键词转义和引号
-            local escaped_keywords=()
-            for keyword in "${workflows_keep_keyword[@]}"; do
-                # 转义正则特殊字符
-                escaped_keywords+=("$(echo "$keyword" | sed 's/[.[\]$^|]/\\&/g')")
-            done
-            local keyword_pattern="$(IFS='|'; echo "${escaped_keywords[*]}")"
+            # 直接使用关键词数组，避免正则转义（适用于纯字符串匹配）
+            local keyword_regex="^.*${workflows_keep_keyword[0]}.*$"  # 匹配包含关键词的任意位置
             
-            # 使用单引号包裹 jq 表达式，避免 shell 对双引号的干扰
-            # 注意：此处使用单引号 'select(...)'，内部双引号不需要转义
-            jq -c 'select(.name | test("'"${keyword_pattern}"'"))' "${all_workflows_list}" > "${keyword_workflows_list}"
-            jq -c 'select(.name | not test("'"${keyword_pattern}"'"))' "${all_workflows_list}" > "${non_keyword_workflows_list}"
+            # 使用双引号包裹 jq 表达式，内部使用单引号避免冲突
+            jq -c --arg keyword "${workflows_keep_keyword[0]}" '
+                select(.name | contains($keyword))
+            ' "${all_workflows}" > "${keyword_list}"
             
-            # 检查 jq 命令是否执行成功
+            jq -c --arg keyword "${workflows_keep_keyword[0]}" '
+                select(.name | not contains($keyword))
+            ' "${all_workflows}" > "${non_keyword_list}"
+            
             if [[ $? -ne 0 ]]; then
-                echo -e "${ERROR} 关键词过滤失败: ${keyword_pattern}"
+                echo -e "${ERROR} (2.4.2) 关键词过滤失败: ${workflows_keep_keyword[0]}"
                 return 1
             fi
-
-            # 日志输出
-            if [[ "${out_log}" == "true" ]]; then
-                if [[ -s "${keyword_workflows_list}" ]]; then
-                    echo -e "${DISPLAY} (2.4.2) 关键词匹配的工作流列表:"
-                    cat "${keyword_workflows_list}" | jq -c .
-                else
-                    echo -e "${NOTE} (2.4.3) 无匹配关键词的工作流"
-                fi
-            fi
+            
+            echo -e "${DISPLAY} (2.4.3) 匹配到 ${keyword_list_lines} 条关键词工作流"
         else
-            # 无关键词时，所有工作流视为非关键词
-            cp "${all_workflows_list}" "${non_keyword_workflows_list}"
+            cp "${all_workflows}" "${non_keyword_list}"
             echo -e "${NOTE} (2.4.4) 未设置过滤关键词，所有工作流进入非关键词处理"
         fi
 
-        # 后续处理逻辑...
+        # 处理非关键词工作流（按时间倒序保留最新）
+        process_non_keyword_workflows "${non_keyword_list}"
+    else
+        echo -e "${NOTE} (2.4.5) 工作流列表为空，跳过过滤"
+    fi
+}
+
+# 处理非关键词工作流的函数
+process_non_keyword_workflows() {
+    local non_keyword_file="$1"
+    local sorted_file="${non_keyword_file%.json}_sorted.json"
+    
+    # 按时间倒序排序（最新时间在前）
+    jq -s 'reverse | .[]' "${non_keyword_file}" > "${sorted_file}"
+    
+    local total=$(wc -l < "${sorted_file}")
+    local keep=${workflows_keep_latest:-30}  # 默认保留30条
+    
+    if [[ ${total} -gt ${keep} ]]; then
+        # 保留最新的 ${keep} 条，其余加入删除列表
+        tail -n "${keep}" "${sorted_file}" > "${non_keyword_file}"
+        head -n "$((total - keep))" "${sorted_file}" > "${delete_list_file}"
+        echo -e "${INFO} (2.5.1) 非关键词工作流中删除旧版本 ${total - keep} 条"
+    else
+        > "${delete_list_file}"  # 无需删除
     fi
 }
 
