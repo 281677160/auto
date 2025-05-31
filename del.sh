@@ -415,24 +415,29 @@ get_workflows_list() {
 
     # 按日期排序（从旧到新）
     if [[ -s "${all_workflows_list}" ]]; then
-        jq -s 'sort_by(.date)' "${all_workflows_list}" | jq -c '.[]' > "${all_workflows_list}.tmp"
+        # 确保文件内容是一个有效的 JSON 数组
+        jq -s '.' "${all_workflows_list}" > "${all_workflows_list}.tmp"
+        mv "${all_workflows_list}.tmp" "${all_workflows_list}"
+
+        # 按日期排序
+        jq -s 'sort_by(.date)' "${all_workflows_list}" > "${all_workflows_list}.tmp"
         mv "${all_workflows_list}.tmp" "${all_workflows_list}"
         
         # 应用max_workflows_fetch限制
-        if [[ "$(wc -l < "${all_workflows_list}")" -gt "${max_workflows_fetch}" ]]; then
+        if [[ "$(jq length "${all_workflows_list}")" -gt "${max_workflows_fetch}" ]]; then
             echo -e "${INFO} (2.3.1) 工作流数量超过max_workflows_fetch限制 [${max_workflows_fetch}]，将保留最旧的${max_workflows_fetch}条"
-            head -n "${max_workflows_fetch}" "${all_workflows_list}" > "${all_workflows_list}.tmp"
+            jq -s '.[:'"${max_workflows_fetch}"']' "${all_workflows_list}" > "${all_workflows_list}.tmp"
             mv "${all_workflows_list}.tmp" "${all_workflows_list}"
         fi
         
         # 打印结果日志
-        actual_count=$(wc -l < "${all_workflows_list}")
+        actual_count=$(jq length "${all_workflows_list}")
         echo -e "${INFO} (2.3.2) 获取工作流信息请求成功"
         echo -e "${INFO} (2.3.3) 获取到的工作流总数: [ ${actual_count} ]"
         if [[ "${out_log}" == "true" ]]; then
             if [[ -s "${all_workflows_list}" ]]; then
                 echo -e "${DISPLAY} (2.3.4) 所有工作流运行列表:"
-                cat "${all_workflows_list}" | jq -c .
+                jq -c . "${all_workflows_list}"
                 echo -e ""
             else
                 echo -e "${NOTE} (2.3.5) 工作流列表为空"
