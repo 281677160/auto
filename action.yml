@@ -54,6 +54,10 @@ inputs:
     description: "Maximum number of workflow runs to fetch in total"
     required: false
     default: "200"
+  debug:
+    description: "Enable debug output"
+    required: false
+    default: "false"
 
 runs:
   using: "composite"
@@ -61,19 +65,21 @@ runs:
     - name: Ensure proper jq installation
       shell: bash
       run: |
-        # 检查并移除可能通过snap安装的jq
-        if command -v jq &> /dev/null; then
-          echo "Removing existing jq installation..."
-          sudo snap remove jq 2> /dev/null || true
-          sudo apt-get remove -y jq 2> /dev/null || true
+        # 根据DEBUG变量决定是否静默
+        if [ "$DEBUG" != "true" ]; then
+          exec >/dev/null 2>&1
         fi
 
-        # 通过apt安装标准版jq
+        if command -v jq &> /dev/null; then
+          echo "Removing existing jq installation..."
+          sudo snap remove jq || true
+          sudo apt-get remove -y jq || true
+        fi
+
         echo "Installing jq via apt..."
         sudo apt-get -qq update
         sudo apt-get -qq install -y jq
 
-        # 验证安装
         if ! command -v jq &> /dev/null; then
           echo "::error::Failed to install jq"
           exit 1
@@ -81,6 +87,7 @@ runs:
         echo "jq installed successfully at $(which jq)"
       env:
         DEBIAN_FRONTEND: noninteractive
+        DEBUG: ${{ inputs.debug || 'false' }}
 
     - name: Run cleanup script
       shell: bash
