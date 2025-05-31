@@ -457,22 +457,23 @@ filter_workflows() {
         if [[ "${#workflows_keep_keyword[@]}" -ge 1 ]]; then
             echo -e "${INFO} (2.4.1) 过滤工作流关键词: [ $(echo ${workflows_keep_keyword[@]} | xargs) ]"
             
-            # 转义关键词中的特殊字符（如 `-`、`.` 等）
+            # 正确处理关键词转义和引号
             local escaped_keywords=()
             for keyword in "${workflows_keep_keyword[@]}"; do
+                # 转义正则特殊字符
                 escaped_keywords+=("$(echo "$keyword" | sed 's/[.[\]$^|]/\\&/g')")
             done
-            local keyword_pattern="$(IFS='|'; echo "${escaped_keywords[*]}")"  # 拼接为正则表达式
+            local keyword_pattern="$(IFS='|'; echo "${escaped_keywords[*]}")"
             
-            # 提取关键词匹配的工作流（保留）
-            jq -c "select(.name | test(\"${keyword_pattern}\"))" "${all_workflows_list}" > "${keyword_workflows_list}"
+            # 使用单引号包裹 jq 表达式，避免 shell 对双引号的干扰
+            # 注意：此处使用单引号 'select(...)'，内部双引号不需要转义
+            jq -c 'select(.name | test("'"${keyword_pattern}"'"))' "${all_workflows_list}" > "${keyword_workflows_list}"
+            jq -c 'select(.name | not test("'"${keyword_pattern}"'"))' "${all_workflows_list}" > "${non_keyword_workflows_list}"
             
-            # 提取非关键词工作流（待处理）
-            jq -c "select(.name | not test(\"${keyword_pattern}\"))" "${all_workflows_list}" > "${non_keyword_workflows_list}"
-            
-            # 处理 jq 语法错误（若关键词为空或包含非法字符）
+            # 检查 jq 命令是否执行成功
             if [[ $? -ne 0 ]]; then
-                error_msg "关键词正则表达式有误: ${keyword_pattern}"
+                echo -e "${ERROR} 关键词过滤失败: ${keyword_pattern}"
+                return 1
             fi
 
             # 日志输出
@@ -490,8 +491,7 @@ filter_workflows() {
             echo -e "${NOTE} (2.4.4) 未设置过滤关键词，所有工作流进入非关键词处理"
         fi
 
-        # 后续处理非关键词工作流的逻辑（与之前相同）
-        # ...
+        # 后续处理逻辑...
     fi
 }
 
