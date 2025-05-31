@@ -387,6 +387,9 @@ get_workflows_list() {
     
     echo -e "${INFO} 需要获取的页数: ${total_pages_needed}"
 
+    # 初始化一个空的 JSON 数组
+    echo "[]" > "${all_workflows_list}"
+
     # 从最后一页开始获取工作流列表
     for (( page=total_pages_needed; page>=1; page-- )); do
         echo -e "${INFO} 正在获取第 ${page}/${total_pages_needed} 页..."
@@ -408,17 +411,13 @@ get_workflows_list() {
 
         # 处理结果并追加到文件
         if [[ "$get_results_length" -gt 0 ]]; then
-            # 确保每一页的结果都是一个 JSON 数组
-            echo "${response}" | jq -c '.workflow_runs[] | select(.status != "in_progress") | {date: .updated_at, id: .id, name: .name}' >> "${all_workflows_list}"
+            # 将每一页的结果追加到 JSON 数组中
+            echo "${response}" | jq -c '.workflow_runs[] | select(.status != "in_progress") | {date: .updated_at, id: .id, name: .name}' | jq -s '. |= . + ['.']' -- "${all_workflows_list}" > "${all_workflows_list}.tmp" && mv "${all_workflows_list}.tmp" "${all_workflows_list}"
         fi
     done
 
     # 按日期排序（从旧到新）
     if [[ -s "${all_workflows_list}" ]]; then
-        # 确保文件内容是一个有效的 JSON 数组
-        jq -s '.' "${all_workflows_list}" > "${all_workflows_list}.tmp"
-        mv "${all_workflows_list}.tmp" "${all_workflows_list}"
-
         # 按日期排序
         jq -s 'sort_by(.date)' "${all_workflows_list}" > "${all_workflows_list}.tmp"
         mv "${all_workflows_list}.tmp" "${all_workflows_list}"
