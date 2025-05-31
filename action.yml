@@ -58,7 +58,16 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - shell: bash
+    - name: Install dependencies
+      shell: bash
+      run: |
+        sudo apt-get -qq update
+        sudo apt-get -qq install -y jq curl
+      env:
+        DEBIAN_FRONTEND: noninteractive
+
+    - name: Run cleanup script
+      shell: bash
       run: |
         GITHUB_ACTION_PATH="${{ github.action_path }}"
         cd "$GITHUB_ACTION_PATH"
@@ -82,7 +91,7 @@ runs:
         ERROR="[\033[91m ERROR \033[0m]"
         error_msg() {
             echo -e "${ERROR} ${1}"
-            exit 0
+            exit 1
         }
 
         # 验证必需参数,如果参数为空则会停止脚本运行
