@@ -291,7 +291,7 @@ delete_releases() {
             release_id=$(echo "${release}" | jq -r '.id')
             tag_name=$(echo "${release}" | jq -r '.tag_name')
             
-            echo -e "${INFO} (1.7.1) 正在删除发布 ${count}/${total}: ID=${release_id}, Tag=${tag_name}"
+            echo -e "${INFO} (1.7.1) 正在删除发布 ${count}/${total}"
             
             # 删除发布
             response=$(curl -s -o /dev/null -w "%{http_code}" \
@@ -303,7 +303,7 @@ delete_releases() {
             )
                 
             if [[ "$response" -eq 204 ]]; then
-                echo -e "${SUCCESS} (1.7.2) 发布 ${count}/${total} 删除成功"
+                echo -e "${SUCCESS} (1.7.2) 发布 ${count}、ID=${release_id}, Tag=${tag_name} 删除成功"
                 
                 # 如果启用，删除关联的标签
                 if [[ "${delete_tags}" == "true" ]]; then
@@ -324,7 +324,7 @@ delete_releases() {
                     fi
                 fi
             else
-                echo -e "${ERROR} (1.7.6) 删除发布 ${count}/${total} 失败: HTTP ${response}"
+                echo -e "${ERROR} (1.7.6) 删除发布 ${count}、ID=${release_id}, Tag=${tag_name} 失败: HTTP ${response}"
             fi
         done < "${all_releases_list}"
         
@@ -466,7 +466,7 @@ delete_workflows() {
             workflow_id=$(echo "${workflow}" | jq -r '.id')
             workflow_name=$(echo "${workflow}" | jq -r '.name')
             
-            echo -e "${INFO} (2.6.1) 正在删除工作流 ${count}/${total}: ID=${workflow_id}, Name=${workflow_name}"
+            echo -e "${INFO} (2.6.1) 正在删除工作流 ${count}/${total}"
             
             # 删除工作流
             response=$(curl -s -o /dev/null -w "%{http_code}" \
@@ -478,9 +478,9 @@ delete_workflows() {
             )
                 
             if [[ "$response" -eq 204 ]]; then
-                echo -e "${SUCCESS} (2.6.2) 工作流 ${count}/${total} 删除成功"
+                echo -e "${SUCCESS} (2.6.2) 工作流 ${count}、ID=${workflow_id}, Name=${workflow_name} 删除成功"
             else
-                echo -e "${ERROR} (2.6.3) 删除工作流 ${count}/${total} 失败: HTTP ${response}"
+                echo -e "${ERROR} (2.6.3) 删除工作流 ${count}、ID=${workflow_id}, Name=${workflow_name} 失败: HTTP ${response}"
             fi
         done < "${all_workflows_list}"
         
