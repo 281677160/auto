@@ -92,11 +92,9 @@ runs:
     - name: Run cleanup script
       shell: bash
       run: |
-        # 确保使用系统路径的jq
-        export PATH="/usr/bin:$PATH"
-        
         GITHUB_ACTION_PATH="${{ github.action_path }}"
         cd "$GITHUB_ACTION_PATH"
+        export PATH="/usr/bin:$PATH"
 
         # 所有应用参数，同时删除空白字符(包括空格、制表符和换行符)
         delete_releases=$(echo "${{ inputs.delete_releases }}" | tr -d '[:space:]')
@@ -143,8 +141,7 @@ runs:
         [[ -n "${out_log}" ]] && make_command="${make_command} -o ${out_log}"
 
         if ! jq --version &> /dev/null; then
-          echo "::error::jq is not functioning properly"
-          exit 1
+          error_msg "jq 安装失败，退出脚本"
         fi
 
         # 执行脚本
