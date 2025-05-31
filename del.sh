@@ -100,8 +100,7 @@ init_var() {
     
     # 在GitHub Actions环境中使用正确的临时目录
     if [[ -n "$github_workspace" ]]; then
-        tmp_dir="$github_workspace/cmp"
-        mkdir -p "${tmp_dir}"
+        tmp_dir="$github_workspace"
     else
         tmp_dir=$(mktemp -d)
     fi
@@ -130,7 +129,7 @@ get_releases_list() {
     echo -e "${STEPS} 开始查询发布列表..."
 
     # 创建文件存储结果
-    all_releases_list="$github_workspace/json_api_releases"
+    all_releases_list="$tmp_dir/json_api_releases"
     echo "" > "${all_releases_list}"
     
     # 计算需要请求的总页数
