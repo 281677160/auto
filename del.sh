@@ -13,6 +13,21 @@ NOTE="[\033[93m 注意 \033[0m]"
 ERROR="[\033[91m 错误 \033[0m]"
 SUCCESS="[\033[92m 成功 \033[0m]"
 
+# 定义临时文件目录
+TEMP_DIR="$(mktemp -d)"
+trap 'rm -rf "$TEMP_DIR"' EXIT
+
+# 定义临时文件路径
+all_releases_list="${TEMP_DIR}/json_api_releases"
+filtered_by_prerelease="${TEMP_DIR}/json_filtered_by_prerelease"
+filtered_by_keyword="${TEMP_DIR}/json_filtered_by_keyword"
+keep_releases_list="${TEMP_DIR}/json_keep_releases_list"
+
+all_workflows_list="${TEMP_DIR}/json_api_workflows"
+filtered_by_time="${TEMP_DIR}/json_filtered_by_time"
+filtered_by_keyword="${TEMP_DIR}/json_filtered_by_keyword"
+keep_workflows_list="${TEMP_DIR}/json_keep_workflows_list"
+
 #==============================================================================================
 
 error_msg() {
@@ -52,6 +67,14 @@ init_var() {
 
     # 安装必要的依赖包
     sudo apt-get -qq update && sudo apt-get -qq install -y jq curl
+
+    # 创建临时文件
+    touch "$all_releases_list" "$filtered_by_prerelease" "$filtered_by_keyword" "$keep_releases_list"
+    touch "$all_workflows_list" "$filtered_by_time" "$filtered_by_keyword" "$keep_workflows_list"
+    
+    # 确保临时文件可读写
+    chmod 600 "$all_releases_list" "$filtered_by_prerelease" "$filtered_by_keyword" "$keep_releases_list"
+    chmod 600 "$all_workflows_list" "$filtered_by_time" "$filtered_by_keyword" "$keep_workflows_list"
 
     # 解析参数
     while [[ $# -gt 0 ]]; do
@@ -107,8 +130,7 @@ init_var() {
 get_releases_list() {
     echo -e "${STEPS} 开始查询发布列表..."
 
-    # 创建文件存储结果
-    all_releases_list="json_api_releases"
+    # 清空文件
     echo -n "" >"${all_releases_list}"
     
     # 计算需要请求的总页数
@@ -192,9 +214,9 @@ out_releases_list() {
     echo -e "${STEPS} 开始输出发布列表..."
 
     # 临时文件定义
-    filtered_by_prerelease="json_filtered_by_prerelease"
-    filtered_by_keyword="json_filtered_by_keyword"
-    keep_releases_list="json_keep_releases_list"
+    filtered_by_prerelease="${TEMP_DIR}/json_filtered_by_prerelease"
+    filtered_by_keyword="${TEMP_DIR}/json_filtered_by_keyword"
+    keep_releases_list="${TEMP_DIR}/json_keep_releases_list"
 
     if [[ -s "${all_releases_list}" ]]; then
         # 复制原始列表用于后续过滤
@@ -372,8 +394,7 @@ del_releases_tags() {
 get_workflows_list() {
     echo -e "${STEPS} 开始查询工作流列表..."
 
-    # 创建文件存储结果
-    all_workflows_list="json_api_workflows"
+    # 清空文件
     echo -n "" >"${all_workflows_list}"
     
     # 计算需要请求的总页数
@@ -462,9 +483,9 @@ out_workflows_list() {
     echo -e "${STEPS} 开始输出工作流列表..."
 
     # 临时文件定义
-    filtered_by_time="json_filtered_by_time"
-    filtered_by_keyword="json_filtered_by_keyword"
-    keep_workflows_list="json_keep_workflows_list"
+    filtered_by_time="${TEMP_DIR}/json_filtered_by_time"
+    filtered_by_keyword="${TEMP_DIR}/json_filtered_by_keyword"
+    keep_workflows_list="${TEMP_DIR}/json_keep_workflows_list"
 
     if [[ -s "${all_workflows_list}" ]]; then
         # 复制原始列表用于后续过滤
@@ -616,4 +637,4 @@ else
     echo -e "${STEPS} 不启用删除工作流"
 fi
 
-wait    
+wait
