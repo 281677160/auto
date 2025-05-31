@@ -100,7 +100,7 @@ init_var() {
     
     # 在GitHub Actions环境中使用正确的临时目录
     if [[ -n "$github_workspace" ]]; then
-        tmp_dir="$github_workspace/tmp"
+        tmp_dir="$github_workspace/cmp"
         mkdir -p "${tmp_dir}"
     else
         tmp_dir=$(mktemp -d)
