@@ -221,12 +221,19 @@ get_releases_list() {
     for (( page=total_pages; page>=1; page-- )); do
         echo -e "${INFO} 正在获取第 ${page}/${total_pages} 页..."
         
+        # 获取API响应并检查有效性
         response=$(retry_curl "curl -s -L -f \
             -H \"Authorization: Bearer ${gh_token}\" \
             -H \"Accept: application/vnd.github+json\" \
             -H \"X-GitHub-Api-Version: 2022-11-28\" \
             \"https://api.github.com/repos/${repo}/releases?per_page=${github_per_page}&page=${page}\"")
         
+        # 检查响应是否为有效JSON
+        if ! jq -e . >/dev/null 2>&1 <<<"$response"; then
+            echo -e "${ERROR} (1.1.${page}) API返回无效JSON响应"
+            continue
+        fi
+
         # 获取当前页返回的结果数量
         get_results_length=$(echo "${response}" | jq '. | length')
         echo -e "${INFO} (1.1.${page}) 查询第 [ ${page} ] 页，返回 [ ${get_results_length} ] 条结果"
@@ -415,12 +422,19 @@ get_workflows_list() {
     for (( page=total_pages; page>=1; page-- )); do
         echo -e "${INFO} 正在获取第 ${page}/${total_pages} 页..."
         
+        # 获取API响应并检查有效性
         response=$(retry_curl "curl -s -L -f \
             -H \"Authorization: Bearer ${gh_token}\" \
             -H \"Accept: application/vnd.github+json\" \
             -H \"X-GitHub-Api-Version: 2022-11-28\" \
             \"https://api.github.com/repos/${repo}/actions/runs?per_page=${github_per_page}&page=${page}\"")
         
+        # 检查响应是否为有效JSON
+        if ! jq -e . >/dev/null 2>&1 <<<"$response"; then
+            echo -e "${ERROR} (2.1.${page}) API返回无效JSON响应"
+            continue
+        fi
+
         # 获取当前页返回的结果数量
         get_results_length=$(echo "${response}" | jq -r '.workflow_runs | length')
         echo -e "${INFO} (2.1.${page}) 查询第 [ ${page} ] 页，返回 [ ${get_results_length} ] 条结果"
