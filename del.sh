@@ -511,6 +511,12 @@ filter_workflows() {
         if [[ "${workflows_keep_latest}" -eq "0" ]]; then
             echo -e "${INFO} (2.5.1) 将删除所有剩余工作流"
         else
+            # 确保文件是有效的JSON数组
+            if ! jq -e '. | type == "array"' "${all_workflows_list}" &>/dev/null; then
+                jq -s '.' "${all_workflows_list}" > "${all_workflows_list}.tmp"
+                mv "${all_workflows_list}.tmp" "${all_workflows_list}"
+            fi
+
             # 按日期排序（从旧到新）
             jq -s 'sort_by(.date)' "${all_workflows_list}" | jq -c '.[]' > "${all_workflows_list}.tmp"
             mv "${all_workflows_list}.tmp" "${all_workflows_list}"
