@@ -8,7 +8,7 @@ if ! command -v jq &> /dev/null; then
     echo "ERROR: jq command not found" >&2
     exit 1
 fi
-#
+
 # 设置默认值
 github_per_page="100"  # 每次请求获取的数量
 github_max_page="10"   # 最大请求页数限制
@@ -21,12 +21,10 @@ ERROR="[\033[91m 错误 \033[0m]"
 DISPLAY="[\033[31m 日志 \033[0m]"
 SUCCESS="[\033[92m 成功 \033[0m]"
 
-
 # 临时文件目录
 TMP_DIR=$(mktemp -d)
 chmod 755 "${TMP_DIR}"
 trap 'rm -rf "${TMP_DIR}"' EXIT
-mkdir -p "${TMP_DIR}"
 
 #==============================================================================================
 
@@ -250,7 +248,7 @@ filter_releases() {
         
         # 匹配关键词并写入保留文件
         for keyword in "${releases_keep_keyword[@]}"; do
-            jq -c "select(.tag_name | test(\"${keyword}\"))" "${all_releases_list}" >> "${keep_keyword_releases_list}"
+            jq -c "select(.tag_name | index(\"${keyword}\"))" "${all_releases_list}" >> "${keep_keyword_releases_list}"
         done
 
         # 从原始列表中移除保留的发布
@@ -458,7 +456,7 @@ filter_workflows() {
         
         # 匹配关键词并写入保留文件
         for keyword in "${workflows_keep_keyword[@]}"; do
-            jq -c "select(.name | test(\"${keyword}\"))" "${all_workflows_list}" >> "${keep_keyword_workflows_list}"
+            jq -c "select(.name | index(\"${keyword}\"))" "${all_workflows_list}" >> "${keep_keyword_workflows_list}"
         done
 
         # 从原始列表中移除保留的工作流
