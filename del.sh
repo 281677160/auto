@@ -1,4 +1,13 @@
 #!/usr/bin/env bash
+
+# 确保使用系统jq
+export PATH="/usr/bin:$PATH"
+
+# 验证jq是否可用
+if ! command -v jq &> /dev/null; then
+    echo "ERROR: jq command not found" >&2
+    exit 1
+fi
 #
 # 设置默认值
 github_per_page="100"  # 每次请求获取的数量
@@ -14,6 +23,8 @@ SUCCESS="[\033[92m 成功 \033[0m]"
 # 临时文件目录
 TMP_DIR=$(mktemp -d)
 chmod 755 "${TMP_DIR}"
+trap 'rm -rf "${TMP_DIR}"' EXIT
+mkdir -p "${TMP_DIR}"
 
 #==============================================================================================
 
