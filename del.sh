@@ -199,6 +199,7 @@ get_releases_list() {
             if [[ -s "${all_releases_list}" ]]; then
                 echo -e "${DISPLAY} (1.3.4) 所有发布列表:"
                 cat "${all_releases_list}" | jq -c .
+                echo -e ""
             else
                 echo -e "${NOTE} (1.3.5) 发布列表为空"
             fi
@@ -231,6 +232,7 @@ filter_releases() {
             if [[ -s "${all_releases_list}" ]]; then
                 echo -e "${DISPLAY} (1.4.4) 当前发布列表:"
                 cat "${all_releases_list}" | jq -c .
+                echo -e ""
             else
                 echo -e "${NOTE} (1.4.5) 发布列表为空"
             fi
@@ -261,6 +263,7 @@ filter_releases() {
                 if [[ -s "${keep_keyword_releases_list}" ]]; then
                     echo -e "${DISPLAY} (1.5.2) 符合条件标签列表:"
                     cat "${keep_keyword_releases_list}" | jq -c .
+                    echo -e ""
                 else
                     echo -e "${NOTE} (1.5.3) 符合条件标签列表为空"
                 fi
@@ -297,12 +300,14 @@ filter_releases() {
                 if [[ -s "${keep_latest_releases_list}" ]]; then
                     echo -e "${DISPLAY} (1.6.2) 保留的最新发布列表:"
                     cat "${keep_latest_releases_list}" | jq -c .
+                    echo -e ""
                 else
                     echo -e "${NOTE} (1.6.3) 保留的最新发布列表为空"
                 fi
                 if [[ -s "${all_releases_list}" ]]; then
                     echo -e "${DISPLAY} (1.6.4) 将要删除的发布列表:"
                     cat "${all_releases_list}" | jq -c .
+                    echo -e ""
                 else
                     echo -e "${NOTE} (1.6.5) 将要删除的发布列表为空"
                 fi
@@ -429,6 +434,7 @@ get_workflows_list() {
             if [[ -s "${all_workflows_list}" ]]; then
                 echo -e "${DISPLAY} (2.3.4) 所有工作流运行列表:"
                 cat "${all_workflows_list}" | jq -c .
+                echo -e ""
             else
                 echo -e "${NOTE} (2.3.5) 工作流列表为空"
             fi
@@ -465,12 +471,14 @@ filter_workflows() {
                 if [[ -s "${keep_keyword_workflows_list}" ]]; then
                     echo -e "${DISPLAY} (2.4.2) 符合条件工作流列表:"
                     cat "${keep_keyword_workflows_list}" | jq -c .
+                    echo -e ""
                 else
                     echo -e "${NOTE} (2.4.3) 符合条件工作流列表为空"
                 fi
                 if [[ -s "${all_workflows_list}" ]]; then
                     echo -e "${DISPLAY} (2.4.4) 关键词过滤后剩余列表:"
                     cat "${all_workflows_list}" | jq -c .
+                    echo -e ""
                 else
                     echo -e "${NOTE} (2.4.5) 关键词过滤后列表为空"
                 fi
@@ -501,12 +509,14 @@ filter_workflows() {
                 if [[ -s "${keep_latest_workflows_list}" ]]; then
                     echo -e "${DISPLAY} (2.5.2) 保留的最新工作流列表:"
                     cat "${keep_latest_workflows_list}" | jq -c .
+                    echo -e ""
                 else
                     echo -e "${NOTE} (2.5.3) 保留的最新工作流列表为空"
                 fi
                 if [[ -s "${all_workflows_list}" ]]; then
                     echo -e "${DISPLAY} (2.5.4) 将要删除的工作流列表:"
                     cat "${all_workflows_list}" | jq -c .
+                    echo -e ""
                 else
                     echo -e "${NOTE} (2.5.5) 将要删除的工作流列表为空"
                 fi
