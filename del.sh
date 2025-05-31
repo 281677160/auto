@@ -185,7 +185,7 @@ get_releases_list() {
         
         # 打印结果日志
         actual_count=$(wc -l < "${all_releases_list}")
-        echo -e "${INFO} (1.3.1) 从api.github.com获取发布请求成功"
+        echo -e "${INFO} (1.3.1) 获取发布信息请求成功"
         echo -e "${INFO} (1.3.2) 获取到的发布总数: [ ${actual_count} ]"
         [[ "${out_log}" == "true" ]] && {
             echo -e "${INFO} (1.3.3) 所有发布列表:"
@@ -379,7 +379,7 @@ get_workflows_list() {
         
         # 打印结果日志
         actual_count=$(wc -l < "${all_workflows_list}")
-        echo -e "${INFO} (2.3.1) 从api.github.com获取工作流请求成功"
+        echo -e "${INFO} (2.3.1) 获取工作流信息请求成功"
         echo -e "${INFO} (2.3.2) 获取到的工作流总数: [ ${actual_count} ]"
         [[ "${out_log}" == "true" ]] && {
             echo -e "${INFO} (2.3.3) 所有工作流运行列表:"
