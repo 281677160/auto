@@ -65,6 +65,7 @@ runs:
     - name: Ensure proper jq installation
       shell: bash
       run: |
+        # Receive input parameters related to releases
         INFO="[\033[94m 信息 \033[0m]"
         ERROR="[\033[91m ERROR \033[0m]"
         error_msg() {
