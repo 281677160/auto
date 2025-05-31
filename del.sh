@@ -465,10 +465,11 @@ filter_workflows() {
 
         # 将匹配关键词的工作流保存到B文件
         if [[ -s "${temp_keep_file}" ]]; then
+            # 排序并保存到B文件
             jq -s 'sort_by(.date)' "${temp_keep_file}" | jq -c '.[]' > "${keep_keyword_workflows_list}"
             
-            # 从原始列表中移除保留的工作流
-            jq -c --slurpfile keep "${keep_keyword_workflows_list}" \
+            # 创建不匹配关键词的工作流列表
+            jq -c --slurpfile keep "${temp_keep_file}" \
                 'select(all($keep[]; .id != .id))' "${all_workflows_list}" > "${all_workflows_list}.tmp"
             mv "${all_workflows_list}.tmp" "${all_workflows_list}"
             
