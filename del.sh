@@ -445,74 +445,89 @@ get_workflows_list() {
 filter_workflows() {
     echo -e "${STEPS} 开始过滤工作流列表..."
 
-    all_workflows_list="${TMP_DIR}/A_all_workflows_list.json"
-    
-    # 1. 分离关键词匹配的工作流（仅用于日志显示）
-    keep_keyword_workflows_list="${TMP_DIR}/B_keep_keyword_workflows.json"
-    > "${keep_keyword_workflows_list}"
-    
-    if [[ "${#workflows_keep_keyword[@]}" -ge "1" && -s "${all_workflows_list}" ]]; then
-        echo -e "${INFO} (2.4.1) 过滤工作流关键词: [ $(echo ${workflows_keep_keyword[@]} | xargs) ]"
-        
-        # 匹配关键词并写入保留文件（仅用于日志）
-        for keyword in "${workflows_keep_keyword[@]}"; do
-            jq -c "select(.name | index(\"${keyword}\"))" "${all_workflows_list}" >> "${keep_keyword_workflows_list}"
-        done
+    local all_workflows_list="${TMP_DIR}/A_all_workflows_list.json"
+    local keyword_workflows_list="${TMP_DIR}/B_keyword_workflows.json"  # 关键词匹配的工作流（保留）
+    local non_keyword_workflows_list="${TMP_DIR}/C_non_keyword_workflows.json"  # 非关键词工作流（待处理）
+    local keep_latest_workflows_list="${TMP_DIR}/D_keep_latest_workflows.json"  # 非关键词中保留的最新工作流
+    local delete_workflows_list="${TMP_DIR}/E_delete_workflows.json"  # 最终要删除的工作流
 
-        # 从原始列表中移除关键词匹配的工作流
-        jq -c --slurpfile keep "${keep_keyword_workflows_list}" \
-            'select(any($keep[]; .id == .id) | not)' "${all_workflows_list}" > "${all_workflows_list}.tmp"
-        mv "${all_workflows_list}.tmp" "${all_workflows_list}"
-        
-        if [[ "${out_log}" == "true" && -s "${keep_keyword_workflows_list}" ]]; then
-            echo -e "${DISPLAY} (2.4.2) 关键词匹配的工作流列表:"
-            cat "${keep_keyword_workflows_list}" | jq -c .
-        fi
-    else
-        echo -e "${NOTE} (2.4.3) 过滤关键词为空，跳过关键词过滤"
-    fi
-
-    # 2. 按时间排序并保留最新的N条非关键词工作流
-    keep_latest_workflows_list="${TMP_DIR}/C_keep_latest_workflows.json"
+    # 初始化文件
+    > "${keyword_workflows_list}"
+    > "${non_keyword_workflows_list}"
     > "${keep_latest_workflows_list}"
-    
+    > "${delete_workflows_list}"
+
     if [[ -s "${all_workflows_list}" ]]; then
-        # 按日期排序（从新到旧）
-        jq -s 'sort_by(.date | strptime("%Y-%m-%dT%H:%M:%SZ") | mktime) | reverse' "${all_workflows_list}" | jq -c '.[]' > "${all_workflows_list}.tmp"
-        mv "${all_workflows_list}.tmp" "${all_workflows_list}"
-        
-        if [[ "${workflows_keep_latest}" -eq "0" ]]; then
-            echo -e "${INFO} (2.5.1) 将删除所有非关键词工作流"
-        else
-            # 保留最新的N条记录
-            head -n "${workflows_keep_latest}" "${all_workflows_list}" > "${keep_latest_workflows_list}"
+        # ====================== 1. 关键词过滤 ======================
+        if [[ "${#workflows_keep_keyword[@]}" -ge 1 ]]; then
+            echo -e "${INFO} (2.4.1) 过滤工作流关键词: [ $(echo ${workflows_keep_keyword[@]} | xargs) ]"
+            local keyword_pattern="$(echo "${workflows_keep_keyword[@]}" | sed 's/[^[:alnum:]]/\\&/g' | tr ' ' '|')"
             
-            # 从原始列表中移除保留的工作流
-            tail -n "+${workflows_keep_latest}" "${all_workflows_list}" > "${all_workflows_list}.tmp"
-            mv "${all_workflows_list}.tmp" "${all_workflows_list}"
+            # 提取关键词匹配的工作流（保留）
+            jq -c "select(.name | test(\"${keyword_pattern}\"))" "${all_workflows_list}" > "${keyword_workflows_list}"
             
-            if [[ "${out_log}" == "true" && -s "${keep_latest_workflows_list}" ]]; then
-                echo -e "${DISPLAY} (2.5.2) 保留的最新非关键词工作流列表:"
-                cat "${keep_latest_workflows_list}" | jq -c .
+            # 提取非关键词工作流（待处理）
+            jq -c "select(.name | not test(\"${keyword_pattern}\"))" "${all_workflows_list}" > "${non_keyword_workflows_list}"
+            
+            if [[ "${out_log}" == "true" ]]; then
+                if [[ -s "${keyword_workflows_list}" ]]; then
+                    echo -e "${DISPLAY} (2.4.2) 关键词匹配的工作流列表:"
+                    cat "${keyword_workflows_list}" | jq -c .
+                else
+                    echo -e "${NOTE} (2.4.3) 无匹配关键词的工作流"
+                fi
             fi
+        else
+            # 无关键词时，所有工作流视为非关键词
+            cp "${all_workflows_list}" "${non_keyword_workflows_list}"
+            echo -e "${NOTE} (2.4.4) 未设置过滤关键词，所有工作流进入非关键词处理"
+        fi
+
+        # ====================== 2. 处理非关键词工作流 ======================
+        if [[ -s "${non_keyword_workflows_list}" ]]; then
+            # 按时间倒序排序（最新在前）
+            jq -s 'reverse | .[]' "${non_keyword_workflows_list}" > "${non_keyword_workflows_list}.tmp"
+            mv "${non_keyword_workflows_list}.tmp" "${non_keyword_workflows_list}"
+
+            local total_non_keyword=$(wc -l < "${non_keyword_workflows_list}")
+            local keep_count="${workflows_keep_latest}"
+
+            if [[ "${keep_count}" -gt 0 && "${keep_count}" -lt "${total_non_keyword}" ]]; then
+                # 保留最新的 N 条，其余加入删除列表
+                tail -n "${keep_count}" "${non_keyword_workflows_list}" > "${keep_latest_workflows_list}"
+                head -n "$((total_non_keyword - keep_count))" "${non_keyword_workflows_list}" > "${delete_workflows_list}"
+                
+                if [[ "${out_log}" == "true" ]]; then
+                    echo -e "${DISPLAY} (2.5.1) 非关键词工作流中保留最新 ${keep_count} 条:"
+                    cat "${keep_latest_workflows_list}" | jq -c .
+                    echo -e "${DISPLAY} (2.5.2) 非关键词工作流中待删除的旧版本:"
+                    cat "${delete_workflows_list}" | jq -c .
+                fi
+            elif [[ "${keep_count}" -eq 0 ]]; then
+                # 删除所有非关键词工作流
+                cp "${non_keyword_workflows_list}" "${delete_workflows_list}"
+                echo -e "${INFO} (2.5.3) 将删除所有非关键词工作流（共 ${total_non_keyword} 条）"
+            else
+                echo -e "${NOTE} (2.5.4) 非关键词工作流数量不足 ${keep_count} 条，无需删除"
+            fi
+        else
+            echo -e "${NOTE} (2.5.5) 非关键词工作流列表为空，跳过处理"
+        fi
+
+        # ====================== 3. 合并最终保留和删除列表 ======================
+        if [[ "${out_log}" == "true" ]]; then
+            echo -e "${DISPLAY} (2.5.6) 最终保留的工作流（关键词 + 非关键词最新）:"
+            cat "${keyword_workflows_list}" "${keep_latest_workflows_list}" | jq -c .
+        fi
+
+        # 生成最终待删除列表（仅包含非关键词中需要删除的部分）
+        if [[ -s "${delete_workflows_list}" ]]; then
+            cp "${delete_workflows_list}" "${all_workflows_list}"  # 更新全局待删除列表
+        else
+            > "${all_workflows_list}"  # 清空待删除列表
         fi
     else
-        echo -e "${NOTE} (2.5.3) 非关键词工作流列表为空，跳过"
-    fi
-
-    # 3. 最终要删除的工作流就是 all_workflows_list 中剩下的
-    if [[ "${out_log}" == "true" ]]; then
-        if [[ -s "${keep_keyword_workflows_list}" || -s "${keep_latest_workflows_list}" ]]; then
-            echo -e "${DISPLAY} (2.5.4) 最终保留的工作流:"
-            [[ -s "${keep_keyword_workflows_list}" ]] && cat "${keep_keyword_workflows_list}" | jq -c .
-            [[ -s "${keep_latest_workflows_list}" ]] && cat "${keep_latest_workflows_list}" | jq -c .
-        fi
-        if [[ -s "${all_workflows_list}" ]]; then
-            echo -e "${DISPLAY} (2.5.5) 将要删除的工作流列表:"
-            cat "${all_workflows_list}" | jq -c .
-        else
-            echo -e "${NOTE} (2.5.6) 没有需要删除的工作流"
-        fi
+        echo -e "${NOTE} (2.5.7) 工作流列表为空，跳过"
     fi
 }
 
