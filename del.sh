@@ -71,6 +71,14 @@ ensure_file_exists() {
     fi
 }
 
+# 检查文件是否为空
+check_file_non_empty() {
+    local file="$1"
+    if [[ ! -s "$file" ]]; then
+        echo -e "${NOTE} 文件 $file 为空"
+    fi
+}
+
 init_var() {
     echo -e "${STEPS} 开始初始化变量..."
 
@@ -205,6 +213,9 @@ get_releases_list() {
         fi
     done
 
+    # 确保文件存在
+    ensure_file_exists "$all_releases_list"
+    
     if [[ -s "$all_releases_list" ]]; then
         # 移除空行
         sed -i '/^[[:space:]]*$/d' "$all_releases_list"
@@ -475,6 +486,10 @@ get_workflows_list() {
         fi
     done
 
+    # 确保文件存在并检查内容
+    ensure_file_exists "$all_workflows_list"
+    check_file_non_empty "$all_workflows_list"
+    
     if [[ -s "$all_workflows_list" ]]; then
         # 移除空行
         sed -i '/^[[:space:]]*$/d' "$all_workflows_list"
@@ -658,4 +673,4 @@ else
     echo -e "${STEPS} 不启用删除工作流"
 fi
 
-wait    
+wait
