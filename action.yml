@@ -57,7 +57,7 @@ inputs:
   debug:
     description: "Enable debug output"
     required: false
-    default: "false"
+    default: "true"
 
 runs:
   using: "composite"
@@ -78,19 +78,19 @@ runs:
         fi
 
         if command -v jq &> /dev/null; then
-          echo -e "${INFO} Removing existing jq installation..."
+          echo -e "${INFO} 正在御载jq..."
           sudo snap remove jq || true
           sudo apt-get remove -y jq || true
         fi
 
-        echo -e "${INFO} Installing jq via apt..."
+        echo -e "${INFO} 开始安装jq..."
         sudo apt-get -qq update
         sudo apt-get -qq install -y jq
 
         if ! command -v jq &> /dev/null; then
           error_msg "jq 安装失败，退出脚本"
         fi
-        echo -e "${INFO} jq installed successfully at $(which jq)"
+        echo -e "${INFO} jq 安装完毕 $(which jq)"
       env:
         DEBIAN_FRONTEND: noninteractive
         DEBUG: ${{ inputs.debug || 'false' }}
