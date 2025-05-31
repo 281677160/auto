@@ -58,9 +58,6 @@ validate_positive_integer() {
 init_var() {
     echo -e "${STEPS} 开始初始化变量..."
 
-    # 安装必要的依赖包
-    sudo apt-get -qq update && sudo apt-get -qq install -y jq curl
-
     # 获取参数
     get_all_ver="$(getopt "r:a:t:p:l:w:c:s:d:k:h:g:o:" "${@}")"
 
