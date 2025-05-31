@@ -77,7 +77,7 @@ runs:
         out_log=$(echo "${{ inputs.out_log }}" | tr -d '[:space:]')
         repo=$(echo "${{ inputs.repo }}" | tr -d '[:space:]}')
         gh_token="${{ inputs.gh_token }}"
-        github_workspace="${GITHUB_WORKSPACE}"
+        github_workspace="${GITHUB_ACTION_PATH}"
 
         # 错误提示颜色
         ERROR="[\033[91m ERROR \033[0m]"
