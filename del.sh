@@ -241,25 +241,36 @@ filter_releases() {
     if [[ "${#releases_keep_keyword[@]}" -ge "1" && -s "${filtered_releases_list}" ]]; then
         echo -e "${INFO} (1.5.1) 过滤标签关键词: [ $(echo ${releases_keep_keyword[@]} | xargs) ]"
         
-        # 构建关键词过滤条件
-        local filter_expr=".[] | select("
-        local first=true
-        for keyword in "${releases_keep_keyword[@]}"; do
-            if [[ "$first" == "false" ]]; then
-                filter_expr+=" and "
-            fi
-            filter_expr+="(.tag_name | contains(\"${keyword}\") | not"
-            first=false
-        done
-        filter_expr+=")"
+        # 创建临时jq脚本文件来处理复杂的过滤逻辑
+        local jq_script="${TMP_DIR}/filter.jq"
+        cat > "${jq_script}" << 'EOF'
+def contains_any_keyword(keywords):
+  . as $input | 
+  keywords | any($input | contains(.));
+
+[.[] | select(
+  (true
+EOF
         
+        for keyword in "${releases_keep_keyword[@]}"; do
+            echo "  and (.tag_name | contains(\"${keyword}\") | not)" >> "${jq_script}"
+        done
+        
+        cat >> "${jq_script}" << 'EOF'
+  )
+)]
+EOF
+
         # 应用过滤
-        jq "[${filter_expr}]" "${filtered_releases_list}" > "${filtered_releases_list}.tmp"
+        jq -f "${jq_script}" "${filtered_releases_list}" > "${filtered_releases_list}.tmp"
         
         # 记录保留的发布（仅日志）
         if [[ "${out_log}" == "true" ]]; then
             kept_releases_list="${TMP_DIR}/kept_releases.json"
-            jq "[.[] | select(${filter_expr} | not)]" "${filtered_releases_list}" > "${kept_releases_list}"
+            jq '[.[] | select(. as $in | 
+                ['"$(printf "\"%s\"," "${releases_keep_keyword[@]}" | sed 's/,$//')"'] | 
+                any($in.tag_name | contains(.))]' \
+                "${filtered_releases_list}" > "${kept_releases_list}"
             echo -e "${DISPLAY} (1.5.2) 符合条件标签列表（将被保留）:"
             jq -r '.[].tag_name' "${kept_releases_list}"
         fi
