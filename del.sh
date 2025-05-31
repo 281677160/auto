@@ -216,16 +216,19 @@ filter_releases() {
     filtered_releases_list="${TMP_DIR}/B_filtered_releases_list.json"
     > "${filtered_releases_list}"
 
-    # 1. 处理关键词过滤
-    if [[ "${#releases_keep_keyword[@]}" -ge "1" && -s "${all_releases_list}" ]]; then
-        echo -e "${INFO} (1.5.1) 过滤标签关键词: [ $(echo ${releases_keep_keyword[@]} | xargs) ]"
-        
-        # 将文件转换为JSON数组（如果还不是）
+    # 确保文件是JSON数组格式
+    if [[ -s "${all_releases_list}" ]]; then
+        # 如果文件不是数组格式，转换为数组
         if ! jq -e '. | type == "array"' "${all_releases_list}" &>/dev/null; then
             jq -s '.' "${all_releases_list}" > "${all_releases_list}.tmp"
             mv "${all_releases_list}.tmp" "${all_releases_list}"
         fi
+    fi
 
+    # 1. 处理关键词过滤（仅在有关键词时执行）
+    if [[ "${#releases_keep_keyword[@]}" -ge "1" && -s "${all_releases_list}" ]]; then
+        echo -e "${INFO} (1.5.1) 过滤标签关键词: [ $(echo ${releases_keep_keyword[@]} | xargs) ]"
+        
         # 构建关键词过滤条件
         local filter_condition=""
         for keyword in "${releases_keep_keyword[@]}"; do
@@ -236,7 +239,7 @@ filter_releases() {
         # 应用过滤
         jq -c "[.[] | select(${filter_condition})]" "${all_releases_list}" > "${filtered_releases_list}"
         
-        # 记录保留的工作流（仅日志）
+        # 记录保留的发布（仅日志）
         if [[ "${out_log}" == "true" ]]; then
             kept_releases_list="${TMP_DIR}/kept_releases.json"
             jq -c "[.[] | select(${filter_condition} | not)]" "${all_releases_list}" > "${kept_releases_list}"
@@ -259,21 +262,23 @@ filter_releases() {
         else
             echo -e "${INFO} (1.6.2) 保留最新的 ${releases_keep_latest} 个发布"
             
-            # 按日期排序（从旧到新）
-            jq -c 'sort_by(.date)' "${filtered_releases_list}" > "${filtered_releases_list}.sorted"
+            # 获取总数量
+            total_count=$(jq 'length' "${filtered_releases_list}")
             
-            # 计算要保留的数量
-            local total_count=$(jq 'length' "${filtered_releases_list}.sorted")
-            local keep_count=$(( total_count > releases_keep_latest ? total_count - releases_keep_latest : 0 ))
+            # 计算要删除的数量
+            delete_count=$((total_count > releases_keep_latest ? total_count - releases_keep_latest : 0))
             
-            if [[ "${keep_count}" -gt 0 ]]; then
+            if [[ "${delete_count}" -gt 0 ]]; then
+                # 按日期排序（从旧到新）
+                jq -c 'sort_by(.date)' "${filtered_releases_list}" > "${filtered_releases_list}.sorted"
+                
                 # 提取要删除的（最旧的）
-                jq -c ".[0:${keep_count}]" "${filtered_releases_list}.sorted" > "${final_releases_list}"
+                jq -c ".[0:${delete_count}]" "${filtered_releases_list}.sorted" > "${final_releases_list}"
                 
                 # 记录保留的发布（仅日志）
                 if [[ "${out_log}" == "true" ]]; then
                     echo -e "${DISPLAY} (1.6.3) 将被保留的最新发布:"
-                    jq -c ".[${keep_count}:]" "${filtered_releases_list}.sorted"
+                    jq -c ".[${delete_count}:]" "${filtered_releases_list}.sorted"
                 fi
             else
                 echo -e "${NOTE} (1.6.4) 发布数量不足 ${releases_keep_latest}，全部保留"
@@ -291,7 +296,11 @@ filter_releases() {
     fi
 
     # 更新最终列表
-    mv "${final_releases_list}" "${all_releases_list}"
+    if [[ -s "${final_releases_list}" ]]; then
+        mv "${final_releases_list}" "${all_releases_list}"
+    else
+        > "${all_releases_list}"
+    fi
 }
 
 delete_releases() {
