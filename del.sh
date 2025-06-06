@@ -118,11 +118,11 @@ init_var() {
             -t|--delete_tags) delete_tags="$2"; shift 2 ;;
             -p|--prerelease_option) prerelease_option="$2"; shift 2 ;;
             -l|--releases_keep_latest) releases_keep_latest="$2"; shift 2 ;;
-            -w|--releases_keep_keyword) IFS="/" read -r -a releases_keep_keyword <<< "$2"; shift 2 ;;
+            -w|--releases_keep_keyword) releases_keep_keyword=($2); shift 2 ;;
             -c|--max_releases_fetch) max_releases_fetch="$2"; shift 2 ;;
             -s|--delete_workflows) delete_workflows="$2"; shift 2 ;;
             -d|--workflows_keep_latest) workflows_keep_latest="$2"; shift 2 ;;
-            -k|--workflows_keep_keyword) IFS="/" read -r -a workflows_keep_keyword <<< "$2"; shift 2 ;;
+            -k|--workflows_keep_keyword) workflows_keep_keyword=($2); shift 2 ;;
             -h|--max_workflows_fetch) max_workflows_fetch="$2"; shift 2 ;;
             -g|--gh_token) gh_token="$2"; shift 2 ;;
             -o|--out_log) out_log="$2"; shift 2 ;;
