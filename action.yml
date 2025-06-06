@@ -129,7 +129,9 @@ runs:
           local type="$3"
           local max="${4:-1000}"
 
-          var=$(echo "$var" | tr -d '[:space:]' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+          if [[ "$type" != "keyword" ]]; then
+            var=$(echo "$var" | tr -d '[:space:]' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+          fi
 
           case "$type" in
             boolean)
