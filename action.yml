@@ -129,6 +129,7 @@ runs:
           local type="$3"
           local max="${4:-1000}"
 
+          # 排除关键词的参数项,其他都删除空格,换行符等 
           if [[ "$type" != "keyword" ]]; then
             var=$(echo "$var" | tr -d '[:space:]' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
           fi
